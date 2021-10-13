@@ -25,7 +25,7 @@ class Params:
     epochs = 100
     start_epoch = 0
     batch_size = 16
-    lr = 0.0045
+    lr = 1e-5
     lr_decay = 0.94
     epoch_decay = 4
     momentum = 0.9
@@ -33,8 +33,8 @@ class Params:
     print_freq = 100
 
     # paths
-    resume = 'model_best_wide_resnet50_2.pth.tar'  # set this to path of model to resume training
-    save_path = 'wide_resnet50_2.pth.tar'  # set this to path of where to save the model
+    resume = ''  # set this to path of model to resume training
+    save_path = 'adam_wide_resnet50_2.pth.tar'  # set this to path of where to save the model
     # data_root = 'C:/Users/janik/inat_data/'
     data_root = '/cluster/scratch/ljanik/inat_data/'
     train_file = data_root + 'train2018.json'
@@ -66,10 +66,10 @@ def main():
 
     # define loss function (criterion) and optimizer
     criterion = nn.CrossEntropyLoss().cuda()
-    optimizer = torch.optim.SGD(model.parameters(), args.lr,
-                                momentum=args.momentum,
-                                weight_decay=args.weight_decay)
-    # optimizer = torch.optim.Adam(model.parameters(), args.lr, weight_decay=args.weight_decay)
+    # optimizer = torch.optim.SGD(model.parameters(), args.lr,
+    #                             momentum=args.momentum,
+    #                             weight_decay=args.weight_decay)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     # optionally resume from a checkpoint
     if args.resume:
