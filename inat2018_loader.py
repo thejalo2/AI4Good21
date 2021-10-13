@@ -7,6 +7,7 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 def default_loader(path):
     return Image.open(path).convert('RGB')
 
@@ -38,7 +39,7 @@ def load_taxonomy(ann_data, tax_levels, classes):
 
 
 class INAT(data.Dataset):
-    def __init__(self, root, ann_file, cat_file, is_train=True):
+    def __init__(self, root, ann_file, cat_file, config, is_train=True):
 
         # load annotations
         print('Loading annotations from: ' + os.path.basename(ann_file))
@@ -111,9 +112,9 @@ class INAT(data.Dataset):
         self.loader = default_loader
 
         # augmentation params
-        self.im_size = [299, 299]  # can change this to train on higher res
-        self.mu_data = [0.485, 0.456, 0.406]
-        self.std_data = [0.229, 0.224, 0.225]
+        self.im_size = config['input_size'][1:]
+        self.mu_data = config['mean']
+        self.std_data = config['std']
         self.brightness = 0.4
         self.contrast = 0.4
         self.saturation = 0.4
@@ -126,6 +127,18 @@ class INAT(data.Dataset):
         self.color_aug = transforms.ColorJitter(self.brightness, self.contrast, self.saturation, self.hue)
         self.tensor_aug = transforms.ToTensor()
         self.norm_aug = transforms.Normalize(mean=self.mu_data, std=self.std_data)
+        self.train_trafo = transforms.Compose([
+            self.scale_aug,
+            self.flip_aug,
+            self.color_aug,
+            self.tensor_aug,
+            self.norm_aug
+        ])
+        self.val_trafo = transforms.Compose([
+            self.center_crop,
+            self.tensor_aug,
+            self.norm_aug
+        ])
 
     def __getitem__(self, index):
         path = self.root + self.imgs[index]
@@ -135,14 +148,9 @@ class INAT(data.Dataset):
         tax_ids = self.classes_taxonomic[species_id]
 
         if self.is_train:
-            img = self.scale_aug(img)
-            img = self.flip_aug(img)
-            img = self.color_aug(img)
+            img = self.train_trafo(img)
         else:
-            img = self.center_crop(img)
-
-        img = self.tensor_aug(img)
-        img = self.norm_aug(img)
+            img = self.val_trafo(img)
 
         return img, im_id, species_id, tax_ids
 
