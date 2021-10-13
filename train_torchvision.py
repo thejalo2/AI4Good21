@@ -89,7 +89,7 @@ def main():
 
     # data loading code
     train_dataset = inat2018_loader.INAT(args.data_root, args.train_file, args.cat_file, is_train=True)
-    val_dataset = inat2018_loader.INAT(args.data_root, args.val_file, args.cat_file, is_train=True)
+    val_dataset = inat2018_loader.INAT(args.data_root, args.val_file, args.cat_file, is_train=False)
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size,
                                                shuffle=True, num_workers=args.workers, pin_memory=True)
     val_loader = torch.utils.data.DataLoader(val_dataset,
