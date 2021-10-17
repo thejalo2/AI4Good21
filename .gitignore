@@ -141,3 +141,11 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# Personal json files
+train_2017_bboxes.json
+train2017.json
+train2018.json
+
+val_2017_bboxes.json
+val2017.json
