@@ -47,7 +47,7 @@ prec3 = validate(args, val_loader, model, criterion, False)
 
 # validate per class
 train_dataset = inat2018_loader.INAT(args.data_root, args.train_file, args.cat_file, config, is_train=True)
-val_loader_sep = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=False,
+val_loader_sep = torch.utils.data.DataLoader(val_dataset, batch_size=1, shuffle=False,
                                              num_workers=args.workers, pin_memory=True)
 accs = [{'prec1': 0, 'prec3': 0, 'count': 0} for _ in range(len(train_dataset.ord_lookup))]
 for i, (im, im_id, target, tax_ids) in enumerate(val_loader_sep):
