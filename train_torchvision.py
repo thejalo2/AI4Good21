@@ -31,10 +31,12 @@ class Params:
     momentum = 0.9
     weight_decay = 1e-4
     print_freq = 100
+    acc_freq = 1
 
     # paths
-    resume = ''  # set this to path of model to resume training
-    save_path = 'adam_wide_resnet50_2.pth.tar'  # set this to path of where to save the model
+    resume = 'resnet_baseline_training/adam_wide_resnet_50_best.pth.tar'  # set this to path of model to resume training
+    # save_path = 'adam_wide_resnet50_2.pth.tar'  # set this to path of where to save the model
+    save_path = 'adam_wide_resnet_50.pth.tar'  # set this to path of where to save the model
     # data_root = 'C:/Users/janik/inat_data/'
     data_root = '/cluster/scratch/ljanik/inat_data/'
     train_file = data_root + 'train2018.json'
@@ -46,8 +48,8 @@ class Params:
     save_preds = True
     op_file_name = 'inat2018_test_preds.csv'  # submission file
     if evaluate:
-        # val_file = data_root + 'val2018.json'
-        val_file = data_root + 'test2018.json'
+        val_file = data_root + 'val2018.json'
+        # val_file = data_root + 'test2018.json'
 
 
 best_prec3 = 0.0  # store current best top 3
@@ -59,7 +61,9 @@ def main():
 
     # load pretrained model
     model = models.wide_resnet50_2(pretrained=True)
+    # model = models.resnet34(pretrained=True)
     model.fc = nn.Linear(2048, args.num_classes)
+    # model.fc = nn.Linear(512, args.num_classes)
     model.aux_logits = False
     # model = torch.nn.DataParallel(model).cuda()
     model = model.cuda()
@@ -107,7 +111,7 @@ def main():
         return
 
     for epoch in range(args.start_epoch, args.epochs):
-        adjust_learning_rate(optimizer, epoch)
+        # adjust_learning_rate(optimizer, epoch)
 
         # train for one epoch
         train(train_loader, model, criterion, optimizer, epoch)
@@ -153,11 +157,14 @@ def train(train_loader, model, criterion, optimizer, epoch):
         output = model(input_var)
         loss = criterion(output, target_var)
 
-        # measure accuracy and record loss
-        prec1, prec3 = accuracy(output.data, target, topk=(1, 3))
+        # record loss
         losses.update(loss.item(), input.size(0))
-        top1.update(prec1[0], input.size(0))
-        top3.update(prec3[0], input.size(0))
+
+        # measure accuracy
+        if i % args.acc_freq == 0:
+            prec1, prec3 = accuracy(output.data, target, topk=(1, 3))
+            top1.update(prec1[0], input.size(0))
+            top3.update(prec3[0], input.size(0))
 
         # compute gradient and do optimizer step
         optimizer.zero_grad()
@@ -201,7 +208,8 @@ def validate(val_loader, model, criterion, save_preds=False):
         target_var = torch.autograd.Variable(target, volatile=True)
 
         # compute output
-        output = model(input_var)
+        with torch.inference_mode():
+            output = model(input_var)
         loss = criterion(output, target_var)
 
         if save_preds:

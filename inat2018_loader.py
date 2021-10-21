@@ -65,11 +65,14 @@ class INAT(data.Dataset):
 
         # data distribution exploration
         # print(ann_data['categories'][ann_data['annotations'][0]['category_id']])
-        # counts = [0 for i in range(len(ann_data['categories']))]
-        # for e in ann_data['annotations']:
-        #     counts[int(e['category_id'])] += 1
-        # print(max(counts))
-        # counts = sorted(counts, reverse=True)
+        counts = [0 for _ in range(len(ann_data['categories']))]
+        for e in ann_data['annotations']:
+            counts[int(e['category_id'])] += 1
+        counts = np.array(counts)
+        ord = np.argsort(counts)[::-1]
+        self.ord_lookup = {ord[i]: i for i in ord}
+        counts = counts[ord]
+        self.counts = counts
         # plt.bar(range(len(ann_data['categories'])), counts, width=1)#, log=True)
         # plt.xlabel('Species')
         # plt.ylabel('Number of images')
@@ -126,6 +129,18 @@ class INAT(data.Dataset):
         self.color_aug = transforms.ColorJitter(self.brightness, self.contrast, self.saturation, self.hue)
         self.tensor_aug = transforms.ToTensor()
         self.norm_aug = transforms.Normalize(mean=self.mu_data, std=self.std_data)
+        self.train_trafo = transforms.Compose([
+            self.scale_aug,
+            self.flip_aug,
+            self.color_aug,
+            self.tensor_aug,
+            self.norm_aug
+        ])
+        self.val_trafo = transforms.Compose([
+            self.center_crop,
+            self.tensor_aug,
+            self.norm_aug
+        ])
 
     def __getitem__(self, index):
         path = self.root + self.imgs[index]
@@ -135,14 +150,9 @@ class INAT(data.Dataset):
         tax_ids = self.classes_taxonomic[species_id]
 
         if self.is_train:
-            img = self.scale_aug(img)
-            img = self.flip_aug(img)
-            img = self.color_aug(img)
+            img = self.train_trafo(img)
         else:
-            img = self.center_crop(img)
-
-        img = self.tensor_aug(img)
-        img = self.norm_aug(img)
+            img = self.val_trafo(img)
 
         return img, im_id, species_id, tax_ids
 
