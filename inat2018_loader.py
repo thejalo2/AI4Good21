@@ -59,6 +59,8 @@ class INAT(data.Dataset):
         for e in cat_data:
             for c in cats:
                 classes[c].append(e[c])
+        # print((classes['name']))
+        # print((classes['name'][2844]))
         # for c in cats:
         #     print(c)
         #     print(set(classes[c]))
@@ -66,11 +68,15 @@ class INAT(data.Dataset):
 
         # data distribution exploration
         # print(ann_data['categories'][ann_data['annotations'][0]['category_id']])
-        # counts = [0 for i in range(len(ann_data['categories']))]
-        # for e in ann_data['annotations']:
-        #     counts[int(e['category_id'])] += 1
-        # print(max(counts))
-        # counts = sorted(counts, reverse=True)
+        counts = [0 for _ in range(len(ann_data['categories']))]
+        for e in ann_data['annotations']:
+            counts[int(e['category_id'])] += 1
+        counts = np.array(counts)
+        ord = np.argsort(counts)[::-1]
+        print(ord)
+        self.ord_lookup = {ord[i]: i for i in ord}
+        counts = counts[ord]
+        self.counts = counts
         # plt.bar(range(len(ann_data['categories'])), counts, width=1)#, log=True)
         # plt.xlabel('Species')
         # plt.ylabel('Number of images')
