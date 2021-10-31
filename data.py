@@ -30,7 +30,7 @@ def load_taxonomy(ann_data, tax_levels, classes):
     # create a dictionary of lists containing taxonomic labels
     classes_taxonomic = {}
     for cc in np.unique(classes):
-        tax_ids = [0]*len(tax_levels)
+        tax_ids = [0] * len(tax_levels)
         for ii, tt in enumerate(tax_levels):
             tax_ids[ii] = taxonomy[tt][cc]
         classes_taxonomic[cc] = tax_ids
@@ -39,7 +39,7 @@ def load_taxonomy(ann_data, tax_levels, classes):
 
 
 class INAT(data.Dataset):
-    def __init__(self, root, ann_file, cat_file, config, is_train=True):
+    def __init__(self, root, ann_file, cat_file, config, double_img=False, is_train=True):
 
         # load annotations
         print('Loading annotations from: ' + os.path.basename(ann_file))
@@ -61,6 +61,7 @@ class INAT(data.Dataset):
                 classes[c].append(e[c])
         # print((classes['name']))
         # print((classes['name'][2844]))
+        # print((classes['name'][3119]))
         # for c in cats:
         #     print(c)
         #     print(set(classes[c]))
@@ -75,8 +76,8 @@ class INAT(data.Dataset):
         ord = np.argsort(counts)[::-1]
         print(ord)
         self.ord_lookup = {ord[i]: i for i in ord}
-        counts = counts[ord]
-        self.counts = counts
+        self.counts_lookup = counts
+        self.counts_ordered = counts[ord]
         # plt.bar(range(len(ann_data['categories'])), counts, width=1)#, log=True)
         # plt.xlabel('Species')
         # plt.ylabel('Number of images')
@@ -91,7 +92,14 @@ class INAT(data.Dataset):
         # plt.xlabel('Superclass')
         # plt.ylabel('Number of images')
 
-        # set up the filenames and annotations
+        # pre computations for weighted sampling
+        max_count = np.max(self.counts_lookup)
+        count_normalizer = np.sum(max_count / self.counts_lookup)
+        self.class_probas = np.zeros_like(self.counts_lookup, dtype=float)
+        for class_index, class_count in enumerate(self.counts_lookup):
+            self.class_probas[class_index] = (max_count / class_count) / count_normalizer
+
+            # set up the filenames and annotations
         self.imgs = [aa['file_name'] for aa in ann_data['images']]
         self.ids = [aa['id'] for aa in ann_data['images']]
 
@@ -99,11 +107,11 @@ class INAT(data.Dataset):
         if 'annotations' in ann_data.keys():
             self.classes = [aa['category_id'] for aa in ann_data['annotations']]
         else:
-            self.classes = [0]*len(self.imgs)
+            self.classes = [0] * len(self.imgs)
 
         # load taxonomy
         self.tax_levels = ['id', 'genus', 'family', 'order', 'class', 'phylum', 'kingdom']
-                           #8142, 4412,    1120,     273,     57,      25,       6
+        # 8142, 4412,    1120,     273,     57,      25,       6
         self.taxonomy, self.classes_taxonomic = load_taxonomy(ann_data, self.tax_levels, self.classes)
 
         # taxonomy: for every element in the tax, mapping id to to the tax element instance
@@ -115,7 +123,9 @@ class INAT(data.Dataset):
 
         self.root = root
         self.is_train = is_train
+        self.double_img = double_img
         self.loader = default_loader
+        self.num_classes = self.counts_lookup.shape[0]
 
         # augmentation params
         self.im_size = config['input_size'][1:]
@@ -152,13 +162,32 @@ class INAT(data.Dataset):
         img = self.loader(path)
         species_id = self.classes[index]
         tax_ids = self.classes_taxonomic[species_id]
+        class_count = self.counts_lookup[species_id]
 
         if self.is_train:
             img = self.train_trafo(img)
         else:
             img = self.val_trafo(img)
 
-        return img, im_id, species_id, tax_ids
+        if self.double_img:
+            # sample random image for re-sampling branch
+            random_index = np.random.choice(self.num_classes, p=self.class_probas)
+            random_path = self.root + self.imgs[random_index]
+            random_im_id = self.ids[random_index]
+            random_img = self.loader(random_path)
+            random_species_id = self.classes[random_index]
+            random_tax_ids = self.classes_taxonomic[random_species_id]
+            random_class_count = self.counts_lookup[random_species_id]
+
+            if self.is_train:
+                random_img = self.train_trafo(random_img)
+            else:
+                random_img = self.val_trafo(random_img)
+
+            return img, im_id, species_id, tax_ids, random_img, random_im_id, random_species_id, random_tax_ids
+
+        else:
+            return img, im_id, species_id, tax_ids
 
     def __len__(self):
         return len(self.imgs)

@@ -17,18 +17,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from utils import Params, AverageMeter, accuracy, save_checkpoint, train_epoch, validate
-import inat2018_loader
+import data
+from models import SharedEmbedderModel
 
 args = Params()
 cudnn.benchmark = True
 
 # model
-model = timm.create_model('vit_base_patch16_224', pretrained=True, num_classes=args.num_classes)
-model = model.cuda()
+model = SharedEmbedderModel(num_classes=8142, hidden_size=768).cuda()
+model.alpha = 1.0
+model.inference_alpha = args.inference_alpha
 
 # data
-config = resolve_data_config({}, model=model)
-val_dataset = inat2018_loader.INAT(args.data_root, args.val_file, args.cat_file, config, is_train=False)
+config = resolve_data_config({}, model=model.embedder)
+val_dataset = data.INAT(args.data_root, args.val_file, args.cat_file, config, is_train=False)
 val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False,
                                          num_workers=args.workers, pin_memory=True)
 
@@ -46,7 +48,7 @@ criterion = nn.CrossEntropyLoss().cuda()
 prec3 = validate(args, val_loader, model, criterion, False)
 
 # validate per class
-train_dataset = inat2018_loader.INAT(args.data_root, args.train_file, args.cat_file, config, is_train=True)
+train_dataset = data.INAT(args.data_root, args.train_file, args.cat_file, config, is_train=True)
 val_loader_sep = torch.utils.data.DataLoader(val_dataset, batch_size=1, shuffle=False,
                                              num_workers=args.workers, pin_memory=True)
 accs = [{'prec1': 0, 'prec3': 0, 'count': 0} for _ in range(len(train_dataset.ord_lookup))]
@@ -55,7 +57,7 @@ for i, (im, im_id, target, tax_ids) in enumerate(val_loader_sep):
         im = im.cuda()
         target = target.cuda(non_blocking=True)
         input_var = torch.autograd.Variable(im)
-        output = model(input_var)
+        output = model(input_var, None)
         prec1, prec3 = accuracy(output.data, target, topk=(1, 3))
         idx = train_dataset.ord_lookup[target[0].item()]
         accs[idx]['prec1'] += prec1.item()
@@ -76,7 +78,7 @@ print(accs_avg_prec3_acc)
 # plt.bar(k*np.arange(len(accs_avg_prec3_acc)), accs_avg_prec3_acc, width=s, align='edge')
 plt.plot(k*np.arange(len(accs_avg_prec3_acc)), accs_avg_prec3_acc, 'r', alpha=0.1)
 plt.plot(k*np.arange(len(accs_avg_prec3_acc)), gaussian_filter1d(accs_avg_prec3_acc, 300), 'r')
-c = train_dataset.counts
+c = train_dataset.counts_ordered
 counts = (c - np.min(c)) / (np.max(c) - np.min(c)) * (90 - 50) + 50
 plt.bar(range(len(counts)), counts, width=1, alpha=0.5, align='edge')
 plt.ylim([50, 100])

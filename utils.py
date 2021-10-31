@@ -6,9 +6,8 @@ import numpy as np
 
 
 class Params:
-
     # set to model path to continue training
-    resume = 'vit_baseline_training/vit_base_patch16_224_best.pth.tar'
+    resume = 'vit_base_patch16_224_best.pth.tar'
 
     # paths
     if os.name == 'nt':
@@ -22,10 +21,15 @@ class Params:
 
     # hyper-parameters
     num_classes = 8142
-    batch_size = 16
+    if os.name == 'nt':
+        batch_size = 128
+    else:
+        batch_size = 16
     lr = 1e-5
-    epochs = 100
+    epochs = 25
     start_epoch = 0
+    start_alpha = 1.0
+    inference_alpha = 0.0  # TODO: try 1.0, 0.5, 0.0 (or any other, can optimize this to get the best tradeoff)
 
     # system variables
     print_freq = 100
@@ -40,6 +44,7 @@ class AverageMeter:
     """
     Computes and stores the average and current value
     """
+
     def __init__(self):
         self.reset()
 
@@ -85,29 +90,43 @@ def save_checkpoint(state, is_best, filename):
 def train_epoch(args, train_loader, model, criterion, optimizer, epoch):
     batch_time = AverageMeter()
     data_time = AverageMeter()
-    losses = AverageMeter()
-    top1 = AverageMeter()
-    top3 = AverageMeter()
+    losses = {'cb': AverageMeter(), 'rb': AverageMeter(), 'total': AverageMeter()}
+    top1 = {'cb': AverageMeter(), 'rb': AverageMeter()}
+    top3 = {'cb': AverageMeter(), 'rb': AverageMeter()}
 
     # switch to train mode
     model.train()
 
     end = time.time()
     print('Epoch:{0}'.format(epoch))
-    print('Itr\t\tTime\t\tData\t\tLoss\t\tPrec@1\t\tPrec@3')
+    print('Itr'.ljust(15), 'Time'.ljust(15), 'Data'.ljust(15), 'Loss_total'.ljust(20), 'Loss_1'.ljust(20),
+          'Loss_2'.ljust(20), 'Prec@1_1'.ljust(20), 'Prec@3_1'.ljust(20), 'Prec@1_2'.ljust(20), 'Prec@3_2'.ljust(20))
 
-    for i, (im, im_id, target, tax_ids) in enumerate(train_loader):
+    for i, (im_1, im_id_1, target_1, tax_ids_1,
+            im_2, im_id_2, target_2, tax_ids_2) in enumerate(train_loader):
 
         # measure data loading time
         data_time.update(time.time() - end)
 
         # push to GPU & predict
-        im, target = im.cuda(), target.cuda()
-        input_var = torch.autograd.Variable(im)
-        target_var = torch.autograd.Variable(target)
-        output = model(input_var)
-        loss = criterion(output, target_var)
-        losses.update(loss.item(), im.size(0))
+        im_1, target_1 = im_1.cuda(), target_1.cuda()
+        input_var_1 = torch.autograd.Variable(im_1)
+        target_var_1 = torch.autograd.Variable(target_1)
+
+        im_2, target_2 = im_2.cuda(), target_2.cuda()
+        input_var_2 = torch.autograd.Variable(im_2)
+        target_var_2 = torch.autograd.Variable(target_2)
+
+        output_1, output_2 = model(input_var_1, input_var_2)
+
+        loss_1 = criterion(output_1, target_var_1)
+        loss_2 = criterion(output_2, target_var_2)  # TODO: instead of balances sampling, we could do weighting here
+
+        loss = model.alpha * loss_1 + (1 - model.alpha) * loss_2
+
+        losses['cb'].update(loss_1.item(), im_1.size(0))
+        losses['rb'].update(loss_2.item(), im_1.size(0))
+        losses['total'].update(loss.item(), im_1.size(0))
 
         # compute gradients and do optimizer step
         optimizer.zero_grad()
@@ -120,24 +139,30 @@ def train_epoch(args, train_loader, model, criterion, optimizer, epoch):
 
         # measure accuracy
         if i % args.acc_freq == 0:
-            prec1, prec3 = accuracy(output.data, target, topk=(1, 3))
-            top1.update(prec1[0], im.size(0))
-            top3.update(prec3[0], im.size(0))
+            prec1_1, prec3_1 = accuracy(output_1.data, target_1, topk=(1, 3))
+            top1['cb'].update(prec1_1[0], im_1.size(0))
+            top3['cb'].update(prec3_1[0], im_1.size(0))
+
+            prec1_2, prec3_2 = accuracy(output_2.data, target_2, topk=(1, 3))
+            top1['rb'].update(prec1_2[0], im_2.size(0))
+            top3['rb'].update(prec3_2[0], im_2.size(0))
 
         # print timings and loss
         if i % args.print_freq == 0:
-            print('[{0}/{1}]\t'
-                  '{batch_time.val:.2f} ({batch_time.avg:.2f})\t'
-                  '{data_time.val:.2f} ({data_time.avg:.2f})\t'
-                  '{loss.val:.3f} ({loss.avg:.3f})\t'
-                  '{top1.val:.2f} ({top1.avg:.2f})\t'
-                  '{top3.val:.2f} ({top3.avg:.2f})'
-                  .format(i, len(train_loader), batch_time=batch_time, data_time=data_time, loss=losses, top1=top1,
-                          top3=top3), flush=True)
+            print('[{0}/{1}]'.format(i, len(train_loader)).ljust(15),
+                  '{batch_time.val:.2f} ({batch_time.avg:.2f})'.format(batch_time=batch_time).ljust(15),
+                  '{data_time.val:.2f} ({data_time.avg:.2f})'.format(data_time=data_time).ljust(15),
+                  '{loss.val:.3f} ({loss.avg:.3f})'.format(loss=losses['total']).ljust(20),
+                  '{loss_1.val:.3f} ({loss_1.avg:.3f})'.format(loss_1=losses['cb']).ljust(20),
+                  '{loss_2.val:.3f} ({loss_2.avg:.3f})'.format(loss_2=losses['rb']).ljust(20),
+                  '{top1_1.val:.2f} ({top1_1.avg:.2f})'.format(top1_1=top1['cb']).ljust(20),
+                  '{top3_1.val:.2f} ({top3_1.avg:.2f})'.format(top3_1=top3['cb']).ljust(20),
+                  '{top1_2.val:.2f} ({top1_2.avg:.2f})'.format(top1_2=top1['rb']).ljust(20),
+                  '{top3_2.val:.2f} ({top3_2.avg:.2f})'.format(top3_2=top3['rb']).ljust(20),
+                  flush=True)
 
 
 def validate(args, val_loader, model, criterion, save_preds=False):
-
     with torch.inference_mode():
 
         batch_time = AverageMeter()
@@ -161,7 +186,7 @@ def validate(args, val_loader, model, criterion, save_preds=False):
             target_var = torch.autograd.Variable(target)
 
             # predict
-            output = model(input_var)
+            output = model(input_var, None)
             loss = criterion(output, target_var)
 
             # store the top K classes for the prediction
