@@ -6,6 +6,7 @@ from torchvision import transforms
 import random
 import numpy as np
 import matplotlib.pyplot as plt
+import torch
 
 
 def default_loader(path):
@@ -126,6 +127,17 @@ class INAT(data.Dataset):
         self.double_img = double_img
         self.loader = default_loader
         self.num_classes = self.counts_lookup.shape[0]
+
+        # pre computations for re-weighted loss
+        self.class_weights = 1. / self.counts_lookup
+        # compensate total weight-down (TODO: make smarter)
+        self.class_weights *= self.num_classes / np.sum(self.class_weights)
+        self.class_weights = torch.FloatTensor(self.class_weights).cuda()
+
+        # https://github.com/kaidic/LDAM-DRW/blob/3193f05c1e6e8c4798c5419e97c5a479d991e3e9/utils.py#L31
+        # beta = 0.9999
+        # effective_num = 1.0 - np.power(beta, self.counts_lookup)
+        # self.class_weights = (1.0 - beta) / np.array(effective_num)
 
         # augmentation params
         self.im_size = config['input_size'][1:]

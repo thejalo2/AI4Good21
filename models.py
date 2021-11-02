@@ -20,7 +20,7 @@ class SharedEmbedderModel(nn.Module):
         self.cb = timm.create_model('vit_base_patch16_224', pretrained=True, num_classes=num_classes).head
         self.rb = timm.create_model('vit_base_patch16_224', pretrained=True, num_classes=num_classes).head
 
-    def forward(self, img1, img2):
+    def forward(self, img1, img2, combine=True):
         if img2 is not None:
             # embed
             hidden1 = self.embedder(img1)
@@ -39,10 +39,12 @@ class SharedEmbedderModel(nn.Module):
             logits1 = self.cb(hidden)
             logits2 = self.rb(hidden)
 
-            # combine
-            logits = self.inference_alpha * logits1 + (1 - self.inference_alpha) * logits2
+            if combine:
+                logits = self.inference_alpha * logits1 + (1 - self.inference_alpha) * logits2
+                return logits
+            else:
+                return logits1, logits2
 
-            return logits
 
 
 # TODO: class SeparateEmbedderModel(nn.Module): (embedder not shared)

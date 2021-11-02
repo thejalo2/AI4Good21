@@ -25,7 +25,7 @@ cudnn.benchmark = True
 
 # model
 model = SharedEmbedderModel(num_classes=8142, hidden_size=768).cuda()
-model.alpha = 1.0
+model.alpha = 0.5
 model.inference_alpha = args.inference_alpha
 
 # data

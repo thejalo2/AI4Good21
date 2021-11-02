@@ -7,7 +7,8 @@ import numpy as np
 
 class Params:
     # set to model path to continue training
-    resume = 'vit_base_patch16_224_best.pth.tar'
+    # resume = 'vit_base_patch16_224_best.pth.tar'
+    resume = ''
 
     # paths
     if os.name == 'nt':
@@ -22,14 +23,17 @@ class Params:
     # hyper-parameters
     num_classes = 8142
     if os.name == 'nt':
-        batch_size = 128
+        batch_size = 4
     else:
         batch_size = 16
     lr = 1e-5
-    epochs = 25
+    epochs = 50
     start_epoch = 0
     start_alpha = 1.0
     inference_alpha = 0.0  # TODO: try 1.0, 0.5, 0.0 (or any other, can optimize this to get the best tradeoff)
+
+    reweighting = True
+    resampling = False
 
     # system variables
     print_freq = 100
@@ -87,7 +91,7 @@ def save_checkpoint(state, is_best, filename):
         shutil.copyfile(filename, filename.replace('.pth.tar', '_best.pth.tar'))
 
 
-def train_epoch(args, train_loader, model, criterion, optimizer, epoch):
+def train_epoch(args, train_loader, model, criterion, optimizer, epoch, criterion_reweighted=None):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = {'cb': AverageMeter(), 'rb': AverageMeter(), 'total': AverageMeter()}
@@ -102,25 +106,44 @@ def train_epoch(args, train_loader, model, criterion, optimizer, epoch):
     print('Itr'.ljust(15), 'Time'.ljust(15), 'Data'.ljust(15), 'Loss_total'.ljust(20), 'Loss_1'.ljust(20),
           'Loss_2'.ljust(20), 'Prec@1_1'.ljust(20), 'Prec@3_1'.ljust(20), 'Prec@1_2'.ljust(20), 'Prec@3_2'.ljust(20))
 
-    for i, (im_1, im_id_1, target_1, tax_ids_1,
-            im_2, im_id_2, target_2, tax_ids_2) in enumerate(train_loader):
+    for i, sample in enumerate(train_loader):
 
         # measure data loading time
         data_time.update(time.time() - end)
 
-        # push to GPU & predict
-        im_1, target_1 = im_1.cuda(), target_1.cuda()
-        input_var_1 = torch.autograd.Variable(im_1)
-        target_var_1 = torch.autograd.Variable(target_1)
+        if len(sample) > 4:
+            (im_1, im_id_1, target_1, tax_ids_1, im_2, im_id_2, target_2, tax_ids_2) = sample
 
-        im_2, target_2 = im_2.cuda(), target_2.cuda()
-        input_var_2 = torch.autograd.Variable(im_2)
-        target_var_2 = torch.autograd.Variable(target_2)
+            im_1, target_1 = im_1.cuda(), target_1.cuda()
+            input_var_1 = torch.autograd.Variable(im_1)
+            target_var_1 = torch.autograd.Variable(target_1)
 
-        output_1, output_2 = model(input_var_1, input_var_2)
+            im_2, target_2 = im_2.cuda(), target_2.cuda()
+            input_var_2 = torch.autograd.Variable(im_2)
+            target_var_2 = torch.autograd.Variable(target_2)
+
+            # predict
+            output_1, output_2 = model(input_var_1, input_var_2)
+
+        else:
+            (im_1, im_id_1, target_1, tax_ids_1) = sample
+
+            im_1, target_1 = im_1.cuda(), target_1.cuda()
+            input_var_1 = torch.autograd.Variable(im_1)
+            target_var_1 = torch.autograd.Variable(target_1)
+
+            target_2 = target_1
+            im_2 = im_1
+            target_var_2 = target_var_1
+
+            # predict
+            output_1, output_2 = model(input_var_1, None, combine=False)
 
         loss_1 = criterion(output_1, target_var_1)
-        loss_2 = criterion(output_2, target_var_2)  # TODO: instead of balances sampling, we could do weighting here
+        if criterion_reweighted is None:
+            loss_2 = criterion(output_2, target_var_2)
+        else:
+            loss_2 = criterion_reweighted(output_2, target_var_2)
 
         loss = model.alpha * loss_1 + (1 - model.alpha) * loss_2
 
