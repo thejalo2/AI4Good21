@@ -126,6 +126,7 @@ class INAT(data.Dataset):
         self.root = root
         self.is_train = is_train
         self.loader = default_loader
+        self.num_classes = self.counts_lookup.shape[0]
 
         # pre computations for re-weighted loss
         self.class_weights = 1. / self.counts_lookup
