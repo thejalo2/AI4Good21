@@ -37,6 +37,7 @@ val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size
 
 # loss & optimizer
 criterion = nn.CrossEntropyLoss().cuda()
+criterion_reweighted = nn.CrossEntropyLoss(weight=train_dataset.class_weights).cuda()
 optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
 # continue training
@@ -55,6 +56,12 @@ if args.resume:
 # training loop
 for epoch in range(args.start_epoch, args.epochs):
     train_epoch(args, train_loader, model, criterion, optimizer, epoch)
+
+    if args.reweighting :
+        train_epoch(args, train_loader, model, criterion, optimizer, epoch, criterion_reweighted)
+    else : 
+        train_epoch(args, train_loader, model, criterion, optimizer, epoch)
+
     prec3 = validate(args, val_loader, model, criterion, False)
 
     # save model

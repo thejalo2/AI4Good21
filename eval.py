@@ -76,7 +76,7 @@ print(accs_avg_prec3_acc)
 # plt.bar(k*np.arange(len(accs_avg_prec3_acc)), accs_avg_prec3_acc, width=s, align='edge')
 plt.plot(k*np.arange(len(accs_avg_prec3_acc)), accs_avg_prec3_acc, 'r', alpha=0.1)
 plt.plot(k*np.arange(len(accs_avg_prec3_acc)), gaussian_filter1d(accs_avg_prec3_acc, 300), 'r')
-c = train_dataset.counts
+c = train_dataset.counts_ordered
 counts = (c - np.min(c)) / (np.max(c) - np.min(c)) * (90 - 50) + 50
 plt.bar(range(len(counts)), counts, width=1, alpha=0.5, align='edge')
 plt.ylim([50, 100])

@@ -11,10 +11,7 @@ class Params:
     resume = 'vit_baseline_training/vit_base_patch16_224_best.pth.tar'
 
     # paths
-    if os.name == 'nt':
-        data_root = 'C:/Users/janik/inat_data/'
-    else:
-        data_root = '/cluster/scratch/ljanik/inat_data/'
+    data_root = '../../../scratch/gsialelli/inat_data/'             # TO DO : add parsing for this argument
     train_file = data_root + 'train2018.json'
     val_file = data_root + 'val2018.json'
     cat_file = data_root + 'categories.json'
@@ -22,18 +19,17 @@ class Params:
 
     # hyper-parameters
     num_classes = 8142
-    batch_size = 16
+    batch_size = 16                                                 # TO DO : add parsing for this argument
     lr = 1e-5
     epochs = 100
     start_epoch = 0
 
+    reweighting = True
+
     # system variables
     print_freq = 100
     acc_freq = 1
-    if os.name == 'nt':
-        workers = 0
-    else:
-        workers = 4
+    workers = 4                                                     # TO DO : add parsing for this argument
 
 
 class AverageMeter:
@@ -82,7 +78,7 @@ def save_checkpoint(state, is_best, filename):
         shutil.copyfile(filename, filename.replace('.pth.tar', '_best.pth.tar'))
 
 
-def train_epoch(args, train_loader, model, criterion, optimizer, epoch):
+def train_epoch(args, train_loader, model, criterion, optimizer, epoch, criterion_reweighted=None):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
@@ -106,7 +102,10 @@ def train_epoch(args, train_loader, model, criterion, optimizer, epoch):
         input_var = torch.autograd.Variable(im)
         target_var = torch.autograd.Variable(target)
         output = model(input_var)
-        loss = criterion(output, target_var)
+        if criterion_reweighted is None:
+            loss = criterion(output, target_var)
+        else : 
+            loss = criterion_reweighted(output, target_var)
         losses.update(loss.item(), im.size(0))
 
         # compute gradients and do optimizer step

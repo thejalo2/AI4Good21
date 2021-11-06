@@ -6,6 +6,7 @@ from torchvision import transforms
 import random
 import numpy as np
 import matplotlib.pyplot as plt
+import torch
 
 
 def default_loader(path):
@@ -75,8 +76,9 @@ class INAT(data.Dataset):
         ord = np.argsort(counts)[::-1]
         print(ord)
         self.ord_lookup = {ord[i]: i for i in ord}
-        counts = counts[ord]
-        self.counts = counts
+        self.counts_lookup = counts
+        self.counts_ordered = counts[ord]
+
         # plt.bar(range(len(ann_data['categories'])), counts, width=1)#, log=True)
         # plt.xlabel('Species')
         # plt.ylabel('Number of images')
@@ -90,6 +92,14 @@ class INAT(data.Dataset):
         # plt.bar(range(len(counts)), counts, width=1)#, log=True)
         # plt.xlabel('Superclass')
         # plt.ylabel('Number of images')
+
+        # pre computations for weighted sampling
+        max_count = np.max(self.counts_lookup)
+        count_normalizer = np.sum(max_count / self.counts_lookup)
+        self.class_probas = np.zeros_like(self.counts_lookup, dtype=float)
+        for class_index, class_count in enumerate(self.counts_lookup):
+            self.class_probas[class_index] = (max_count / class_count) / count_normalizer
+
 
         # set up the filenames and annotations
         self.imgs = [aa['file_name'] for aa in ann_data['images']]
@@ -116,6 +126,12 @@ class INAT(data.Dataset):
         self.root = root
         self.is_train = is_train
         self.loader = default_loader
+
+        # pre computations for re-weighted loss
+        self.class_weights = 1. / self.counts_lookup
+        # compensate total weight-down (TODO: make smarter)
+        self.class_weights *= self.num_classes / np.sum(self.class_weights)
+        self.class_weights = torch.FloatTensor(self.class_weights).cuda()
 
         # augmentation params
         self.im_size = config['input_size'][1:]
