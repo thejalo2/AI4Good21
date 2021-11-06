@@ -8,7 +8,8 @@ import numpy as np
 class Params:
 
     # set to model path to continue training
-    resume = 'vit_baseline_training/vit_base_patch16_224_best.pth.tar'
+    # resume = 'vit_baseline_training/vit_base_patch16_224_best.pth.tar'
+    resume = ''
 
     # paths
     data_root = '../../../scratch/gsialelli/inat_data/'             # TO DO : add parsing for this argument
