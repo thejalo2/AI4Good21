@@ -8,8 +8,8 @@ import numpy as np
 class Params:
 
     # set to model path to continue training (or for eval)
-    resume = '../../../scratch/gsialelli/reweight_vit/reweight_vit_base_patch16_224_best.pth.tar'
-    # resume = ''
+    # resume = '../../../scratch/gsialelli/reweight_vit/reweight_vit_base_patch16_224_best.pth.tar'
+    resume = ''
 
     # paths
     data_root = '../../../scratch/gsialelli/inat_data/'             # TO DO : add parsing for this argument
@@ -22,7 +22,7 @@ class Params:
     num_classes = 8142
     batch_size = 16                                                 # TO DO : add parsing for this argument
     lr = 1e-5
-    epochs = 100
+    epochs = 50
     start_epoch = 0
 
     reweighting = True
