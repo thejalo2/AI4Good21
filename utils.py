@@ -8,7 +8,7 @@ import numpy as np
 class Params:
 
     # set to model path to continue training
-    # resume = 'vit_baseline_training/vit_base_patch16_224_best.pth.tar'
+    # resume = 'reweight_vit_base_patch16_224_best.pth.tar'
     resume = ''
 
     # paths
@@ -16,7 +16,7 @@ class Params:
     train_file = data_root + 'train2018.json'
     val_file = data_root + 'val2018.json'
     cat_file = data_root + 'categories.json'
-    save_path = 'vit_base_patch16_224.pth.tar'
+    save_path = 'reweight_vit_base_patch16_224.pth.tar'
 
     # hyper-parameters
     num_classes = 8142
