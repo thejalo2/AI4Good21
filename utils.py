@@ -7,16 +7,16 @@ import numpy as np
 
 class Params:
 
-    # set to model path to continue training
-    # resume = 'reweight_vit_base_patch16_224_best.pth.tar'
-    resume = ''
+    # set to model path to continue training (or for eval)
+    resume = '../../../scratch/gsialelli/reweight_vit/reweight_vit_base_patch16_224_best.pth.tar'
+    # resume = ''
 
     # paths
     data_root = '../../../scratch/gsialelli/inat_data/'             # TO DO : add parsing for this argument
     train_file = data_root + 'train2018.json'
     val_file = data_root + 'val2018.json'
     cat_file = data_root + 'categories.json'
-    save_path = 'reweight_vit_base_patch16_224.pth.tar'
+    save_path = '../../../scratch/gsialelli/reweight_vit/reweight_vit_base_patch16_224.pth.tar'
 
     # hyper-parameters
     num_classes = 8142

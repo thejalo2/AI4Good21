@@ -23,7 +23,7 @@ best_prec3 = 0.0
 cudnn.benchmark = True
 
 # model
-model = timm.create_model('reweight_vit_base_patch16_224', pretrained=True, num_classes=args.num_classes)
+model = timm.create_model('vit_base_patch16_224', pretrained=True, num_classes=args.num_classes)
 model = model.cuda()
 
 # data
