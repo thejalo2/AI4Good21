@@ -64,7 +64,7 @@ for epoch in range(args.start_epoch, args.epochs):
         train_epoch(args, train_loader, model, criterion, optimizer, epoch, criterion_reweighted)
     else:
         train_epoch(args, train_loader, model, criterion, optimizer, epoch)
-    prec3 = validate(args, val_loader, model, criterion, False)
+    prec1, prec3 = validate(args, val_loader, model, criterion, False)
 
     # save model
     is_best = prec3 > best_prec3
@@ -77,12 +77,8 @@ for epoch in range(args.start_epoch, args.epochs):
         'optimizer': optimizer.state_dict(),
     }, is_best, args.save_path)
 
-
-
-
-
-
-
-
-
-
+# x = np.arange(0,25)
+# y = 1 - (x / 25) ** 2
+# plt.plot(x,y)
+# plt.xlabel('epoch')
+# plt.ylabel(r'$\alpha$')

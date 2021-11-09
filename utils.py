@@ -7,8 +7,8 @@ import numpy as np
 
 class Params:
     # set to model path to continue training
-    # resume = 'vit_base_patch16_224_best.pth.tar'
-    resume = ''
+    resume = 'first_reweight/best.pth.tar'
+    # resume = ''
 
     # paths
     if os.name == 'nt':
@@ -239,6 +239,6 @@ def validate(args, val_loader, model, criterion, save_preds=False):
         print(' * Prec@1 {top1.avg:.3f} Prec@3 {top3.avg:.3f}'.format(top1=top1, top3=top3))
 
         if save_preds:
-            return top3.avg, np.vstack(pred), np.hstack(im_ids)
+            return top1.avg, top3.avg, np.vstack(pred), np.hstack(im_ids)
         else:
-            return top3.avg
+            return top1.avg, top3.avg

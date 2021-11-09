@@ -25,7 +25,6 @@ cudnn.benchmark = True
 
 # model
 model = SharedEmbedderModel(num_classes=8142, hidden_size=768).cuda()
-model.alpha = 0.5
 model.inference_alpha = args.inference_alpha
 
 # data
@@ -41,11 +40,11 @@ checkpoint = torch.load(args.resume)
 args.start_epoch = checkpoint['epoch']
 best_prec3 = checkpoint['best_prec3']
 model.load_state_dict(checkpoint['state_dict'])
-print('...... done loading checkpoint {}'.format(args.resume))
+print('...... done loading checkpoint {}, epoch {}'.format(args.resume, args.start_epoch))
 
 # validate
 criterion = nn.CrossEntropyLoss().cuda()
-prec3 = validate(args, val_loader, model, criterion, False)
+prec1_overall, prec3_overall = validate(args, val_loader, model, criterion, False)
 
 # validate per class
 train_dataset = data.INAT(args.data_root, args.train_file, args.cat_file, config, is_train=True)
@@ -76,7 +75,7 @@ k = 1
 accs_avg_prec3_acc = [sum(accs_avg_prec3[i:i + s]) / s for i in range(0, len(accs_avg_prec3) - (s-1), k)]
 print(accs_avg_prec3_acc)
 # plt.bar(k*np.arange(len(accs_avg_prec3_acc)), accs_avg_prec3_acc, width=s, align='edge')
-plt.plot(k*np.arange(len(accs_avg_prec3_acc)), accs_avg_prec3_acc, 'r', alpha=0.1)
+# plt.plot(k*np.arange(len(accs_avg_prec3_acc)), accs_avg_prec3_acc, 'r', alpha=0.1)
 plt.plot(k*np.arange(len(accs_avg_prec3_acc)), gaussian_filter1d(accs_avg_prec3_acc, 300), 'r')
 c = train_dataset.counts_ordered
 counts = (c - np.min(c)) / (np.max(c) - np.min(c)) * (90 - 50) + 50
@@ -84,13 +83,14 @@ plt.bar(range(len(counts)), counts, width=1, alpha=0.5, align='edge')
 plt.ylim([50, 100])
 plt.xlabel('Species')
 plt.ylabel('accuracy %')
+plt.title('Top-1: {}%, Top-3: {}%'.format(round(prec1_overall.item(), 3), round(prec3_overall.item(), 3)))
 plt.show()
 plt.savefig('fig.png')
 
-plt.close()
-counts = [e['count'] for e in accs]
-plt.bar(range(len(counts)), counts, width=1)
-plt.savefig('fig2.png')
+# plt.close()
+# counts = [e['count'] for e in accs]
+# plt.bar(range(len(counts)), counts, width=1)
+# plt.savefig('fig2.png')
 
 
 # train_loader_sep = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=False,
