@@ -132,9 +132,9 @@ class INAT(data.Dataset):
         self.class_weights = 1. / self.counts_lookup
         # compensate total weight-down
         # make classes sum to 1
-        # self.class_weights *= self.num_classes / np.sum(self.class_weights)
+        self.class_weights *= self.num_classes / np.sum(self.class_weights)
         # make training samples sum to 1
-        self.class_weights *= len(self.classes) / np.sum(self.class_weights[self.classes])
+        # self.class_weights *= len(self.classes) / np.sum(self.class_weights[self.classes])
         self.class_weights = torch.FloatTensor(self.class_weights).cuda()
 
         # https://github.com/kaidic/LDAM-DRW/blob/3193f05c1e6e8c4798c5419e97c5a479d991e3e9/utils.py#L31
