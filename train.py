@@ -14,10 +14,9 @@ import os.path as osp
 import time
 import numpy as np
 
-from utils import Params, AverageMeter, accuracy, save_checkpoint, train_epoch, validate
+from utils import Params, AverageMeter, accuracy, save_checkpoint, train_epoch, validate, LDAMLoss
 import data
 from models import SharedEmbedderModel
-
 
 args = Params()
 best_prec3 = 0.0
@@ -30,7 +29,8 @@ model.inference_alpha = args.inference_alpha
 
 # data
 config = resolve_data_config({}, model=model.embedder)
-train_dataset = data.INAT(args.data_root, args.train_file, args.cat_file, config, is_train=True, double_img=args.resampling)
+train_dataset = data.INAT(args.data_root, args.train_file, args.cat_file, config, is_train=True,
+                          double_img=args.resampling)
 val_dataset = data.INAT(args.data_root, args.val_file, args.cat_file, config, is_train=False)
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
                                            num_workers=args.workers, pin_memory=True)
@@ -39,7 +39,8 @@ val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size
 
 # loss & optimizer
 criterion = nn.CrossEntropyLoss().cuda()
-criterion_reweighted = nn.CrossEntropyLoss(weight=train_dataset.class_weights).cuda()
+# criterion_reweighted = nn.CrossEntropyLoss(weight=train_dataset.class_weights).cuda()
+criterion_reweighted = LDAMLoss(train_dataset.counts_lookup, max_m=0.5, weight=train_dataset.class_weights, s=30).cuda()
 optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
 # continue training
