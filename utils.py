@@ -24,6 +24,7 @@ class Params:
     lr = 1e-5
     epochs = 50
     start_epoch = 0
+    start_alpha = 1.0
 
     reweighting = True
 
@@ -79,7 +80,7 @@ def save_checkpoint(state, is_best, filename):
         shutil.copyfile(filename, filename.replace('.pth.tar', '_best.pth.tar'))
 
 
-def train_epoch(args, train_loader, model, criterion, optimizer, epoch, criterion_reweighted=None):
+def train_epoch(args, train_loader, model, criterion, optimizer, epoch, criterion_reweighted=None, alpha=1.0):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
@@ -103,10 +104,14 @@ def train_epoch(args, train_loader, model, criterion, optimizer, epoch, criterio
         input_var = torch.autograd.Variable(im)
         target_var = torch.autograd.Variable(target)
         output = model(input_var)
+
+        loss_1 = criterion(output, target_var)
         if criterion_reweighted is None:
-            loss = criterion(output, target_var)
+            loss_2 = criterion(output, target_var)
         else : 
-            loss = criterion_reweighted(output, target_var)
+            loss_2 = criterion_reweighted(output, target_var)
+
+        loss = alpha * loss_1 + (1 - alpha) * loss_2
         losses.update(loss.item(), im.size(0))
 
         # compute gradients and do optimizer step

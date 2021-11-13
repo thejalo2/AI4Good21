@@ -74,7 +74,7 @@ k = 1
 accs_avg_prec3_acc = [sum(accs_avg_prec3[i:i + s]) / s for i in range(0, len(accs_avg_prec3) - (s-1), k)]
 print(accs_avg_prec3_acc)
 # plt.bar(k*np.arange(len(accs_avg_prec3_acc)), accs_avg_prec3_acc, width=s, align='edge')
-plt.plot(k*np.arange(len(accs_avg_prec3_acc)), accs_avg_prec3_acc, 'r', alpha=0.1)
+# plt.plot(k*np.arange(len(accs_avg_prec3_acc)), accs_avg_prec3_acc, 'r', alpha=0.1)
 plt.plot(k*np.arange(len(accs_avg_prec3_acc)), gaussian_filter1d(accs_avg_prec3_acc, 300), 'r')
 c = train_dataset.counts_ordered
 counts = (c - np.min(c)) / (np.max(c) - np.min(c)) * (90 - 50) + 50
@@ -85,10 +85,10 @@ plt.ylabel('accuracy %')
 plt.show()
 plt.savefig('fig.png')
 
-plt.close()
-counts = [e['count'] for e in accs]
-plt.bar(range(len(counts)), counts, width=1)
-plt.savefig('fig2.png')
+# plt.close()
+# counts = [e['count'] for e in accs]
+# plt.bar(range(len(counts)), counts, width=1)
+# plt.savefig('fig2.png')
 
 
 # train_loader_sep = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=False,

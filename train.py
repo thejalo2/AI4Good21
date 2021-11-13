@@ -47,6 +47,7 @@ if args.resume:
         checkpoint = torch.load(args.resume)
         args.start_epoch = checkpoint['epoch']
         best_prec3 = checkpoint['best_prec3']
+        alpha = checkpoint['alpha']
         model.load_state_dict(checkpoint['state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer'])
         print('...... done loading checkpoint {}'.format(args.resume))
@@ -55,10 +56,10 @@ if args.resume:
 
 # training loop
 for epoch in range(args.start_epoch, args.epochs):
-    train_epoch(args, train_loader, model, criterion, optimizer, epoch)
+    alpha = 1 - (epoch / args.epochs) ** 2
 
     if args.reweighting :
-        train_epoch(args, train_loader, model, criterion, optimizer, epoch, criterion_reweighted)
+        train_epoch(args, train_loader, model, criterion, optimizer, epoch, criterion_reweighted, alpha)
     else : 
         train_epoch(args, train_loader, model, criterion, optimizer, epoch)
 
@@ -71,6 +72,7 @@ for epoch in range(args.start_epoch, args.epochs):
         'epoch': epoch + 1,
         'state_dict': model.state_dict(),
         'best_prec3': best_prec3,
+        'alpha': alpha,
         'optimizer': optimizer.state_dict(),
     }, is_best, args.save_path)
 
