@@ -3,6 +3,8 @@ import torch
 import os
 import time
 import numpy as np
+import torch.nn as nn
+import torch.nn.functional as F
 
 
 class Params:
@@ -18,12 +20,12 @@ class Params:
     train_file = data_root + 'train2018.json'
     val_file = data_root + 'val2018.json'
     cat_file = data_root + 'categories.json'
-    save_path = 'vit_base_patch16_224.pth.tar'
+    save_path = 'nonshared.pth.tar'
 
     # hyper-parameters
     num_classes = 8142
     if os.name == 'nt':
-        batch_size = 4
+        batch_size = 16
     else:
         batch_size = 16
     lr = 1e-5
@@ -31,9 +33,11 @@ class Params:
     start_epoch = 0
     start_alpha = 1.0
     inference_alpha = 0.0  # TODO: try 1.0, 0.5, 0.0 (or any other, can optimize this to get the best tradeoff)
-
+    share_embedder = True
+    use_ldam = False
     reweighting = True
     resampling = False
+    combine_logits = False
 
     # system variables
     print_freq = 100
@@ -63,6 +67,33 @@ class AverageMeter:
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
+
+
+class LDAMLoss(nn.Module):
+    """
+    https://github.com/kaidic/LDAM-DRW/blob/3193f05c1e6e8c4798c5419e97c5a479d991e3e9/losses.py#L23
+    """
+    def __init__(self, cls_num_list, max_m=0.5, weight=None, s=30):
+        super(LDAMLoss, self).__init__()
+        m_list = 1.0 / np.sqrt(np.sqrt(cls_num_list))
+        m_list = m_list * (max_m / np.max(m_list))
+        m_list = torch.cuda.FloatTensor(m_list)
+        self.m_list = m_list
+        assert s > 0
+        self.s = s
+        self.weight = weight
+
+    def forward(self, x, target):
+        index = torch.zeros_like(x, dtype=torch.uint8)
+        index.scatter_(1, target.data.view(-1, 1), 1)
+
+        index_float = index.type(torch.cuda.FloatTensor)
+        batch_m = torch.matmul(self.m_list[None, :], index_float.transpose(0, 1))
+        batch_m = batch_m.view((-1, 1))
+        x_m = x - batch_m
+
+        output = torch.where(index, x_m, x)
+        return F.cross_entropy(self.s * output, target, weight=self.weight)
 
 
 def accuracy(output, target, topk=(1,)):
@@ -137,7 +168,11 @@ def train_epoch(args, train_loader, model, criterion, optimizer, epoch, criterio
             target_var_2 = target_var_1
 
             # predict
-            output_1, output_2 = model(input_var_1, None, combine=False)
+            if args.combine_logits:
+                output_1 = model(input_var_1, None, combine=True)
+                output_2 = output_1
+            else:
+                output_1, output_2 = model(input_var_1, None, combine=False)
 
         loss_1 = criterion(output_1, target_var_1)
         if criterion_reweighted is None:

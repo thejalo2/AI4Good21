@@ -23,12 +23,15 @@ best_prec3 = 0.0
 cudnn.benchmark = True
 
 # model
-model = SharedEmbedderModel(num_classes=8142, hidden_size=768).cuda()
+model = SharedEmbedderModel(num_classes=8142, hidden_size=768, share_embedder=args.share_embedder).cuda()
 model.alpha = 1.0
 model.inference_alpha = args.inference_alpha
 
 # data
-config = resolve_data_config({}, model=model.embedder)
+if args.share_embedder:
+    config = resolve_data_config({}, model=model.embedder)
+else:
+    config = resolve_data_config({}, model=model.embedder_cb)
 train_dataset = data.INAT(args.data_root, args.train_file, args.cat_file, config, is_train=True,
                           double_img=args.resampling)
 val_dataset = data.INAT(args.data_root, args.val_file, args.cat_file, config, is_train=False)
@@ -39,8 +42,10 @@ val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size
 
 # loss & optimizer
 criterion = nn.CrossEntropyLoss().cuda()
-# criterion_reweighted = nn.CrossEntropyLoss(weight=train_dataset.class_weights).cuda()
-criterion_reweighted = LDAMLoss(train_dataset.counts_lookup, max_m=0.5, weight=train_dataset.class_weights, s=30).cuda()
+if args.use_ldam:
+    criterion_reweighted = LDAMLoss(train_dataset.counts_lookup, max_m=0.5, weight=train_dataset.class_weights, s=30).cuda()
+else:
+    criterion_reweighted = nn.CrossEntropyLoss(weight=train_dataset.class_weights).cuda()
 optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
 # continue training
@@ -60,6 +65,7 @@ if args.resume:
 # training loop
 for epoch in range(args.start_epoch, args.epochs):
     model.alpha = 1 - (epoch / args.epochs) ** 2
+    model.inference_alpha = 1 - (epoch / args.epochs) ** 2
     # model.alpha = 0.5
     if args.reweighting:
         train_epoch(args, train_loader, model, criterion, optimizer, epoch, criterion_reweighted)
