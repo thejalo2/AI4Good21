@@ -65,8 +65,7 @@ if args.resume:
 # training loop
 for epoch in range(args.start_epoch, args.epochs):
     model.alpha = 1 - (epoch / args.epochs) ** 2
-    model.inference_alpha = 1 - (epoch / args.epochs) ** 2
-    # model.alpha = 0.5
+    # model.inference_alpha = 1 - (epoch / args.epochs) ** 2
     if args.reweighting:
         train_epoch(args, train_loader, model, criterion, optimizer, epoch, criterion_reweighted)
     else:

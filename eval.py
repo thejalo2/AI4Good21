@@ -19,16 +19,20 @@ import matplotlib.pyplot as plt
 from utils import Params, AverageMeter, accuracy, save_checkpoint, train_epoch, validate
 import data
 from models import SharedEmbedderModel
+import pickle
 
 args = Params()
 cudnn.benchmark = True
 
 # model
-model = SharedEmbedderModel(num_classes=8142, hidden_size=768).cuda()
+model = SharedEmbedderModel(num_classes=8142, hidden_size=768, share_embedder=args.share_embedder).cuda()
 model.inference_alpha = args.inference_alpha
 
 # data
-config = resolve_data_config({}, model=model.embedder)
+try:
+    config = resolve_data_config({}, model=model.embedder)
+except:
+    config = resolve_data_config({}, model=model.embedder_rb)
 val_dataset = data.INAT(args.data_root, args.val_file, args.cat_file, config, is_train=False)
 val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False,
                                          num_workers=args.workers, pin_memory=True)
@@ -86,6 +90,9 @@ plt.ylabel('accuracy %')
 plt.title('Top-1: {}%, Top-3: {}%'.format(round(prec1_overall.item(), 3), round(prec3_overall.item(), 3)))
 plt.show()
 plt.savefig('fig.png')
+
+# with open('a=0.0.pkl', 'wb') as f:
+#     pickle.dump(accs_avg_prec3_acc, f)
 
 # plt.close()
 # counts = [e['count'] for e in accs]

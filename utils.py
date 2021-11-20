@@ -9,8 +9,8 @@ import torch.nn.functional as F
 
 class Params:
     # set to model path to continue training
-    resume = 'first_reweight/best.pth.tar'
-    # resume = ''
+    # resume = 'first_reweight/reproduce/reproduce_best.pth.tar'
+    resume = ''
 
     # paths
     if os.name == 'nt':
@@ -20,7 +20,7 @@ class Params:
     train_file = data_root + 'train2018.json'
     val_file = data_root + 'val2018.json'
     cat_file = data_root + 'categories.json'
-    save_path = 'nonshared.pth.tar'
+    save_path = 'classic25.pth.tar'
 
     # hyper-parameters
     num_classes = 8142
@@ -29,10 +29,10 @@ class Params:
     else:
         batch_size = 16
     lr = 1e-5
-    epochs = 50
+    epochs = 25
     start_epoch = 0
     start_alpha = 1.0
-    inference_alpha = 0.0  # TODO: try 1.0, 0.5, 0.0 (or any other, can optimize this to get the best tradeoff)
+    inference_alpha = 0.0
     share_embedder = True
     use_ldam = False
     reweighting = True
