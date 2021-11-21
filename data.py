@@ -40,7 +40,7 @@ def load_taxonomy(ann_data, tax_levels, classes):
 
 
 class INAT(data.Dataset):
-    def __init__(self, root, ann_file, cat_file, config, double_img=False, is_train=True):
+    def __init__(self, root, ann_file, cat_file, config, beta, double_img=False, is_train=True):
 
         # load annotations
         print('Loading annotations from: ' + os.path.basename(ann_file))
@@ -128,19 +128,21 @@ class INAT(data.Dataset):
         self.loader = default_loader
         self.num_classes = self.counts_lookup.shape[0]
 
-        # pre computations for re-weighted loss
-        self.class_weights = 1. / self.counts_lookup
-        # compensate total weight-down
-        # make classes sum to 1
-        self.class_weights *= self.num_classes / np.sum(self.class_weights)
-        # make training samples sum to 1
-        # self.class_weights *= len(self.classes) / np.sum(self.class_weights[self.classes])
-        self.class_weights = torch.FloatTensor(self.class_weights).cuda()
+        if not beta :
+            # pre computations for re-weighted loss
+            self.class_weights = 1. / self.counts_lookup
+            # compensate total weight-down
+            # make classes sum to 1
+            self.class_weights *= self.num_classes / np.sum(self.class_weights)
+            # make training samples sum to 1
+            # self.class_weights *= len(self.classes) / np.sum(self.class_weights[self.classes])
+            self.class_weights = torch.FloatTensor(self.class_weights).cuda()
 
-        # https://github.com/kaidic/LDAM-DRW/blob/3193f05c1e6e8c4798c5419e97c5a479d991e3e9/utils.py#L31
-        # beta = 0.9999
-        # effective_num = 1.0 - np.power(beta, self.counts_lookup)
-        # self.class_weights = (1.0 - beta) / np.array(effective_num)
+        else : 
+            # https://github.com/kaidic/LDAM-DRW/blob/3193f05c1e6e8c4798c5419e97c5a479d991e3e9/utils.py#L31
+            effective_num = 1.0 - np.power(beta, self.counts_lookup)
+            self.class_weights = (1.0 - beta) / np.array(effective_num)
+            self.class_weights = torch.FloatTensor(self.class_weights).cuda()
 
         # augmentation params
         self.im_size = config['input_size'][1:]

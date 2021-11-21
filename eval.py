@@ -33,7 +33,7 @@ try:
     config = resolve_data_config({}, model=model.embedder)
 except:
     config = resolve_data_config({}, model=model.embedder_rb)
-val_dataset = data.INAT(args.data_root, args.val_file, args.cat_file, config, is_train=False)
+val_dataset = data.INAT(args.data_root, args.val_file, args.cat_file, config, args.beta, is_train=False)
 val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False,
                                          num_workers=args.workers, pin_memory=True)
 
@@ -51,7 +51,7 @@ criterion = nn.CrossEntropyLoss().cuda()
 prec1_overall, prec3_overall = validate(args, val_loader, model, criterion, False)
 
 # validate per class
-train_dataset = data.INAT(args.data_root, args.train_file, args.cat_file, config, is_train=True)
+train_dataset = data.INAT(args.data_root, args.train_file, args.cat_file, config, args.beta, is_train=True)
 val_loader_sep = torch.utils.data.DataLoader(val_dataset, batch_size=1, shuffle=False,
                                              num_workers=args.workers, pin_memory=True)
 accs = [{'prec1': 0, 'prec3': 0, 'count': 0} for _ in range(len(train_dataset.ord_lookup))]

@@ -38,6 +38,7 @@ class Params:
     reweighting = True
     resampling = False
     combine_logits = False
+    beta = None
 
     # system variables
     print_freq = 100
