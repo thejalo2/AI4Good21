@@ -1,0 +1,13 @@
+train: /cluster/scratch/dgeissbue/INaturalist2017/2017_coco_dataset/images/train/
+
+val: /cluster/scratch/dgeissbue/INaturalist2017/2017_coco_dataset/images/val/
+
+nc: 1
+
+names:
+
+  [
+
+    "Entity",
+
+  ]
