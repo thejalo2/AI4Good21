@@ -25,7 +25,7 @@ class Params:
     # hyper-parameters
     num_classes = 8142
     if os.name == 'nt':
-        batch_size = 16
+        batch_size = 2
     else:
         batch_size = 16
     lr = 1e-5
@@ -38,6 +38,7 @@ class Params:
     reweighting = True
     resampling = False
     combine_logits = False
+    merged_training = False
 
     # system variables
     print_freq = 100
@@ -181,6 +182,17 @@ def train_epoch(args, train_loader, model, criterion, optimizer, epoch, criterio
             loss_2 = criterion_reweighted(output_2, target_var_2)
 
         loss = model.alpha * loss_1 + (1 - model.alpha) * loss_2
+
+        if args.merged_training:
+            # note: this only makes sense if the two images are the same
+            output_merged = model.alpha * output_1 + (1 - model.alpha) * output_2
+            loss_3 = criterion(output_merged, target_var_1)
+            if criterion_reweighted is None:
+                loss_4 = criterion(output_merged, target_var_2)
+            else:
+                loss_4 = criterion_reweighted(output_merged, target_var_2)
+            beta = 0.5
+            loss = beta * loss + (1. - beta) * (model.alpha * loss_3 + (1 - model.alpha) * loss_4)
 
         losses['cb'].update(loss_1.item(), im_1.size(0))
         losses['rb'].update(loss_2.item(), im_1.size(0))

@@ -64,12 +64,21 @@ if args.resume:
 
 # training loop
 for epoch in range(args.start_epoch, args.epochs):
+
+    # set alphas according to schedule
     model.alpha = 1 - (epoch / args.epochs) ** 2
-    # model.inference_alpha = 1 - (epoch / args.epochs) ** 2
+    if args.merged_training:
+        model.inference_alpha = model.alpha
+    else:
+        model.inference_alpha = 0.
+
+    # training epoch
     if args.reweighting:
         train_epoch(args, train_loader, model, criterion, optimizer, epoch, criterion_reweighted)
     else:
         train_epoch(args, train_loader, model, criterion, optimizer, epoch)
+
+    # validation epoch
     prec1, prec3 = validate(args, val_loader, model, criterion, False)
 
     # save model
