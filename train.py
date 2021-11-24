@@ -32,9 +32,9 @@ if args.share_embedder:
     config = resolve_data_config({}, model=model.embedder)
 else:
     config = resolve_data_config({}, model=model.embedder_cb)
-train_dataset = data.INAT(args.data_root, args.train_file, args.cat_file, config, is_train=True,
+train_dataset = data.INAT(args.data_root, args.train_file, args.cat_file, config, args.beta, is_train=True,
                           double_img=args.resampling)
-val_dataset = data.INAT(args.data_root, args.val_file, args.cat_file, config, is_train=False)
+val_dataset = data.INAT(args.data_root, args.val_file, args.cat_file, config, args.beta, is_train=False)
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
                                            num_workers=args.workers, pin_memory=True)
 val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False,

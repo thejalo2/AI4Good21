@@ -39,6 +39,7 @@ class Params:
     resampling = False
     combine_logits = False
     merged_training = False
+    beta = None
 
     # system variables
     print_freq = 100
