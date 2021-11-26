@@ -2,6 +2,7 @@ import shutil
 import torch
 import os
 import time
+import random
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
@@ -9,7 +10,8 @@ import torch.nn.functional as F
 
 class Params:
     # set to model path to continue training
-    # resume = 'first_reweight/reproduce/reproduce_best.pth.tar'
+    # resume = 'checkpoints/first_reweight/reproduce/reproduce_best.pth.tar'
+    # resume = 'exit.pth.tar'
     resume = ''
 
     # paths
@@ -20,16 +22,16 @@ class Params:
     train_file = data_root + 'train2018.json'
     val_file = data_root + 'val2018.json'
     cat_file = data_root + 'categories.json'
-    save_path = 'classic25.pth.tar'
+    save_path = 'exit.pth.tar'
 
     # hyper-parameters
     num_classes = 8142
     if os.name == 'nt':
-        batch_size = 2
+        batch_size = 8
     else:
         batch_size = 16
     lr = 1e-5
-    epochs = 25
+    epochs = 50
     start_epoch = 0
     start_alpha = 1.0
     inference_alpha = 0.0
@@ -40,6 +42,8 @@ class Params:
     combine_logits = False
     merged_training = False
     beta = None
+    chunk_size = 815
+    exit_thresh = 80
 
     # system variables
     print_freq = 100
@@ -290,3 +294,13 @@ def validate(args, val_loader, model, criterion, save_preds=False):
             return top1.avg, top3.avg, np.vstack(pred), np.hstack(im_ids)
         else:
             return top1.avg, top3.avg
+
+
+def get_chunk_idx(chunks_classes, classes_inv):
+    num_chunks = len(chunks_classes)
+    # stores which images (index) belong to each chunk
+    chunks_imgs = [[] for _ in range(num_chunks)]
+    for chunk_idx, chunk in enumerate(chunks_classes):
+        for species_id in chunk:
+            chunks_imgs[chunk_idx] += classes_inv[species_id]
+    return chunks_imgs

@@ -7,6 +7,7 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
+import collections
 
 
 def default_loader(path):
@@ -40,7 +41,7 @@ def load_taxonomy(ann_data, tax_levels, classes):
 
 
 class INAT(data.Dataset):
-    def __init__(self, root, ann_file, cat_file, config, beta, double_img=False, is_train=True):
+    def __init__(self, root, ann_file, cat_file, config, beta, double_img=False, is_train=True, chunk_size=None):
 
         # load annotations
         print('Loading annotations from: ' + os.path.basename(ann_file))
@@ -76,7 +77,8 @@ class INAT(data.Dataset):
         counts = np.array(counts)
         ord = np.argsort(counts)[::-1]
         print(ord)
-        self.ord_lookup = {ord[i]: i for i in ord}
+        self.ord_lookup = {ord[i]: i for i in ord}  # class index -> rank
+        self.ord_lookup_inv = {v: k for k, v in self.ord_lookup.items()}  # rank -> class index
         self.counts_lookup = counts
         self.counts_ordered = counts[ord]
         # plt.bar(range(len(ann_data['categories'])), counts, width=1)#, log=True)
@@ -127,8 +129,9 @@ class INAT(data.Dataset):
         self.double_img = double_img
         self.loader = default_loader
         self.num_classes = self.counts_lookup.shape[0]
+        self.num_imgs = len(self.imgs)
 
-        if not beta :
+        if not beta:
             # pre computations for re-weighted loss
             self.class_weights = 1. / self.counts_lookup
             # compensate total weight-down
@@ -138,11 +141,32 @@ class INAT(data.Dataset):
             # self.class_weights *= len(self.classes) / np.sum(self.class_weights[self.classes])
             self.class_weights = torch.FloatTensor(self.class_weights).cuda()
 
-        else : 
+        else:
             # https://github.com/kaidic/LDAM-DRW/blob/3193f05c1e6e8c4798c5419e97c5a479d991e3e9/utils.py#L31
             effective_num = 1.0 - np.power(beta, self.counts_lookup)
             self.class_weights = (1.0 - beta) / np.array(effective_num)
             self.class_weights = torch.FloatTensor(self.class_weights).cuda()
+
+        # classes inv stores for a class a list of indices of images which are from that class
+        self.classes_inv = [[] for _ in range(self.num_classes)]
+        for index in range(self.num_imgs):
+            species_id = self.classes[index]
+            self.classes_inv[species_id].append(index)
+
+        # split dataset into blocks
+        if chunk_size is not None:
+            self.chunk_size = chunk_size
+            self.ord_lookup_inv_ordered = collections.OrderedDict(sorted(self.ord_lookup_inv.items()))
+            self.index_order = list(self.ord_lookup_inv_ordered.values())
+            # stores which class (species id) belongs to each chunk
+            self.chunks_classes = [self.index_order[i:i + self.chunk_size] for i in
+                                   range(0, len(self.index_order), self.chunk_size)]
+            self.num_chunks = len(self.chunks_classes)
+            # # stores which images (index) belong to each chunk
+            # self.chunks_imgs = [[] for _ in range(self.num_chunks)]
+            # for chunk_idx, chunk in enumerate(self.chunks_classes):
+            #     for species_id in chunk:
+            #         self.chunks_imgs[chunk_idx] += self.classes_inv[species_id]
 
         # augmentation params
         self.im_size = config['input_size'][1:]

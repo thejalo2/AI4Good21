@@ -29,9 +29,9 @@ model = SharedEmbedderModel(num_classes=8142, hidden_size=768, share_embedder=ar
 model.inference_alpha = args.inference_alpha
 
 # data
-try:
+if args.share_embedder:
     config = resolve_data_config({}, model=model.embedder)
-except:
+else:
     config = resolve_data_config({}, model=model.embedder_rb)
 val_dataset = data.INAT(args.data_root, args.val_file, args.cat_file, config, args.beta, is_train=False)
 val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False,
@@ -55,6 +55,7 @@ train_dataset = data.INAT(args.data_root, args.train_file, args.cat_file, config
 val_loader_sep = torch.utils.data.DataLoader(val_dataset, batch_size=1, shuffle=False,
                                              num_workers=args.workers, pin_memory=True)
 accs = [{'prec1': 0, 'prec3': 0, 'count': 0} for _ in range(len(train_dataset.ord_lookup))]
+
 for i, (im, im_id, target, tax_ids) in enumerate(val_loader_sep):
     with torch.inference_mode():
         im = im.cuda()
@@ -87,7 +88,7 @@ plt.bar(range(len(counts)), counts, width=1, alpha=0.5, align='edge')
 plt.ylim([50, 100])
 plt.xlabel('Species')
 plt.ylabel('accuracy %')
-plt.title('Top-1: {}%, Top-3: {}%'.format(round(prec1_overall.item(), 3), round(prec3_overall.item(), 3)))
+# plt.title('Top-1: {}%, Top-3: {}%'.format(round(prec1_overall.item(), 3), round(prec3_overall.item(), 3)))
 plt.show()
 plt.savefig('fig.png')
 
