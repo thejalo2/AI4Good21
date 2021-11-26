@@ -15,14 +15,22 @@ import os.path as osp
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+import argparse
 
 from utils import Params, AverageMeter, accuracy, save_checkpoint, train_epoch, validate
 import data
 from models import SharedEmbedderModel
 import pickle
+import json
 
 args = Params()
 cudnn.benchmark = True
+
+# For the per-category accuracy 
+parser = argparse.ArgumentParser()
+parser.add_argument("-cat",    type = str)
+parsed_args = parser.parse_args()
+
 
 # model
 model = SharedEmbedderModel(num_classes=8142, hidden_size=768, share_embedder=args.share_embedder).cuda()
@@ -50,6 +58,28 @@ print('...... done loading checkpoint {}, epoch {}'.format(args.resume, args.sta
 criterion = nn.CrossEntropyLoss().cuda()
 prec1_overall, prec3_overall = validate(args, val_loader, model, criterion, False)
 
+
+#####################################
+# Accuracy plot per supercategory :
+
+if parsed_args.cat : 
+    # need access to ann_data and cat_data : 
+    with open(args.ann_file) as data_file: ann_data = json.load(data_file)
+    with open(args.cat_file) as cat_data_file: cat_data = json.load(cat_data_file)
+
+    all_of_category = set()
+    for cat in cat_data :
+        all_of_category.add(cat['supercategory'])
+        # eg. all_supercategories = {'Arachnida', 'Actinopterygii', 'Aves', 'Mammalia', 'Plantae', 'Animalia', 'Chromista', 'Fungi', 'Protozoa', 'Insecta', 'Reptilia', 'Amphibia', 'Mollusca', 'Bacteria'}
+
+    per_category_accuracies = dict.fromkeys(list(all_of_category), {'prec1':[], 'prec3':[]})
+
+#####################################
+
+# validate per supercategory
+
+
+
 # validate per class
 train_dataset = data.INAT(args.data_root, args.train_file, args.cat_file, config, args.beta, is_train=True)
 val_loader_sep = torch.utils.data.DataLoader(val_dataset, batch_size=1, shuffle=False,
@@ -66,6 +96,13 @@ for i, (im, im_id, target, tax_ids) in enumerate(val_loader_sep):
         accs[idx]['prec1'] += prec1.item()
         accs[idx]['prec3'] += prec3.item()
         accs[idx]['count'] += 1
+
+        if parsed_args.cat :
+            cat_id = ann_data['annotations'][im_id - 1]['category_id']
+            category = cat_data[cat_id][parsed_args.cat]
+
+            per_category_accuracies[category]['prec1'].append(accs[idx]['prec1'])
+            per_category_accuracies[category]['prec3'].append(accs[idx]['prec3'])
 
         if i % args.print_freq == 0 and i > 0:
             print('[{0}/{1}]'.format(i, len(val_loader_sep)), flush=True)
@@ -90,6 +127,38 @@ plt.ylabel('accuracy %')
 plt.title('Top-1: {}%, Top-3: {}%'.format(round(prec1_overall.item(), 3), round(prec3_overall.item(), 3)))
 plt.show()
 plt.savefig('fig.png')
+
+
+#####################################
+# Accuracy plot per supercategory :
+
+if parsed_args.cat : 
+    osp.mkdir('{}_plots'.format(parsed_args.cat))
+    for category, accuracies in per_category_accuracies.items() : 
+
+        accs_avg_prec3 = accuracies['prec3']
+        s, k = 1, 1
+
+        accs_avg_prec3_acc = [sum(accs_avg_prec3[i:i + s]) / s for i in range(0, len(accs_avg_prec3) - (s-1), k)]
+        print(accs_avg_prec3_acc)
+        plt.plot(k*np.arange(len(accs_avg_prec3_acc)), gaussian_filter1d(accs_avg_prec3_acc, 300), 'r')
+        c = train_dataset.counts_ordered
+        counts = (c - np.min(c)) / (np.max(c) - np.min(c)) * (90 - 50) + 50
+        plt.bar(range(len(counts)), counts, width=1, alpha=0.5, align='edge')
+        plt.ylim([50, 100])
+        plt.xlabel('Image')
+        plt.ylabel('accuracy %')
+        plt.title('Top3 accuracy for {} : {}'.format(parsed_args.cat, category))
+        # plt.title('Top-1: {}%, Top-3: {}%'.format(round(prec1_overall.item(), 3), round(prec3_overall.item(), 3)))
+        plt.show()
+        plt.savefig('{}_plots/{}.png'.format(parsed_args.cat, category))
+
+
+
+#####################################
+
+
+
 
 # with open('a=0.0.pkl', 'wb') as f:
 #     pickle.dump(accs_avg_prec3_acc, f)
