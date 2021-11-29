@@ -88,6 +88,7 @@ if args.resume:
 # training loop
 # stores the data loaders for chunks with below-threshold validation accuracy & should thus be used for training
 train_dataset = train_dataset_full
+down_weight_factors = torch.ones_like(train_dataset_full.class_weights)
 exit_thresh = args.exit_thresh
 for epoch in range(args.start_epoch, args.epochs):
 
@@ -101,7 +102,7 @@ for epoch in range(args.start_epoch, args.epochs):
     # training epoch
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
                                                num_workers=args.workers, pin_memory=True)
-    criterion_reweighted = nn.CrossEntropyLoss(weight=train_dataset_full.class_weights).cuda()
+    criterion_reweighted = nn.CrossEntropyLoss(weight=train_dataset_full.class_weights * down_weight_factors).cuda()
     if args.reweighting:
         train_epoch(args, train_loader, model, criterion, optimizer, epoch, criterion_reweighted)
     else:
@@ -119,12 +120,18 @@ for epoch in range(args.start_epoch, args.epochs):
             prec1_i, prec3_i = validate(args, val_loader, model, criterion, False)
             prec3_per_chunk.append(prec3_i.item())
         print(prec3_per_chunk)
-        current_train_loaders_idx = list(np.where(np.array(prec3_per_chunk) < exit_thresh)[0])
-        current_train_datasets = []
-        for i in current_train_loaders_idx:
-            current_train_datasets.append(train_datasets[i])
-        print(len(current_train_datasets))
-        train_dataset = ConcatDataset(current_train_datasets)
+        # current_train_loaders_idx = list(np.where(np.array(prec3_per_chunk) < exit_thresh)[0])$
+        # TODO: increase exit_thresh dynamically
+        current_train_loaders_idx_negative = list(np.where(np.array(prec3_per_chunk) > exit_thresh)[0])
+        # current_train_datasets = []
+        down_weight_factors = torch.ones_like(train_dataset_full.class_weights)
+        for i in current_train_loaders_idx_negative:
+            down_weight_factors[train_dataset_full.chunks_classes[i]] = 0.1
+        print(len(current_train_loaders_idx_negative))
+        print(torch.sum(down_weight_factors))
+        #     current_train_datasets.append(train_datasets[i])
+        # print(len(current_train_datasets))
+        # train_dataset = ConcatDataset(current_train_datasets)
 
     # save model
     is_best = prec3 > best_prec3
