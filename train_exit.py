@@ -111,27 +111,42 @@ for epoch in range(args.start_epoch, args.epochs):
     # validation epoch
     prec1, prec3 = validate(args, val_loader_full, model, criterion, False)
 
-    if True:  # TODO: check only every # epochs
-
-        # validate each chunk to decide on which chunks to train in the next epoch
-        assert len(val_loaders) == len(train_datasets)
-        prec3_per_chunk = []
-        for tl_idx, val_loader in enumerate(val_loaders):
-            prec1_i, prec3_i = validate(args, val_loader, model, criterion, False)
-            prec3_per_chunk.append(prec3_i.item())
-        print(prec3_per_chunk)
-        # current_train_loaders_idx = list(np.where(np.array(prec3_per_chunk) < exit_thresh)[0])$
-        # TODO: increase exit_thresh dynamically
-        current_train_loaders_idx_negative = list(np.where(np.array(prec3_per_chunk) > exit_thresh)[0])
-        # current_train_datasets = []
+    # validate each chunk to decide on which chunks to train in the next epoch
+    assert len(val_loaders) == len(train_datasets)
+    prec3_per_chunk = []
+    for tl_idx, val_loader in enumerate(val_loaders):
+        prec1_i, prec3_i = validate(args, val_loader, model, criterion, False)
+        prec3_per_chunk.append(prec3_i.item())
+    print(prec3_per_chunk)
+    if args.exit_strategy == 'downweight_fixed':
+        passed_mask = np.array(prec3_per_chunk) > exit_thresh
+        current_train_loaders_idx_passed = list(np.where(passed_mask)[0])
         down_weight_factors = torch.ones_like(train_dataset_full.class_weights)
-        for i in current_train_loaders_idx_negative:
-            down_weight_factors[train_dataset_full.chunks_classes[i]] = 0.1
-        print(len(current_train_loaders_idx_negative))
+        for i in current_train_loaders_idx_passed:
+            down_weight_factors[train_dataset_full.chunks_classes[i]] = args.dw_factor
+        print(len(current_train_loaders_idx_passed))
         print(torch.sum(down_weight_factors))
-        #     current_train_datasets.append(train_datasets[i])
-        # print(len(current_train_datasets))
-        # train_dataset = ConcatDataset(current_train_datasets)
+    elif args.exit_strategy == 'downweight_dynamic':
+        passed_mask = np.array(prec3_per_chunk) > exit_thresh
+        current_train_loaders_idx_passed = list(np.where(passed_mask)[0])
+        down_weight_factors = torch.ones_like(train_dataset_full.class_weights)
+        for i in current_train_loaders_idx_passed:
+            down_weight_factors[train_dataset_full.chunks_classes[i]] = args.dw_factor
+        # if all chunks are above the current thresh -> increase it
+        if np.all(passed_mask):
+            exit_thresh = min(exit_thresh + args.thresh_increase, args.max_thresh)
+        print('exit_thresh: {}'.format(exit_thresh))
+        print(len(current_train_loaders_idx_passed))
+        print(torch.sum(down_weight_factors))
+    elif args.exit_strategy == 'dropout':
+        current_train_loaders_idx = list(np.where(np.array(prec3_per_chunk) < exit_thresh)[0])
+        current_train_datasets = []
+        for i in current_train_loaders_idx:
+            current_train_datasets.append(train_datasets[i])
+        print(len(current_train_datasets))
+        train_dataset = ConcatDataset(current_train_datasets)
+    else:
+        raise RuntimeError('Invalid exit strategy: {}'.format(args.exit_strategy))
 
     # save model
     is_best = prec3 > best_prec3
