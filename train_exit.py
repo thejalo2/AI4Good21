@@ -102,6 +102,8 @@ for epoch in range(args.start_epoch, args.epochs):
     # training epoch
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
                                                num_workers=args.workers, pin_memory=True)
+    if args.weight_both_branches:
+        criterion = nn.CrossEntropyLoss(down_weight_factors).cuda()
     criterion_reweighted = nn.CrossEntropyLoss(weight=train_dataset_full.class_weights * down_weight_factors).cuda()
     if args.reweighting:
         train_epoch(args, train_loader, model, criterion, optimizer, epoch, criterion_reweighted)

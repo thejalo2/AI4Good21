@@ -23,7 +23,7 @@ class Params:
     train_file = data_root + 'train2018.json'
     val_file = data_root + 'val2018.json'
     cat_file = data_root + 'categories.json'
-    save_path = 'exit_dynamic_50_10.pth.tar'
+    save_path = 'exit_dynamic_50_10_both.pth.tar'
 
     # hyper-parameters
     num_classes = 8142
@@ -48,6 +48,7 @@ class Params:
     exit_strategy = 'downweight_dynamic'  # downweight_fixed / downweight_dynamic / dropout
     dw_factor = 0.1
     chunk_size = 815
+    weight_both_branches = True
     if exit_strategy == 'downweight_fixed':
         exit_thresh = 80
     elif exit_strategy == 'downweight_dynamic':
