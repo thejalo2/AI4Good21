@@ -73,7 +73,8 @@ if parsed_args.cat :
         all_of_category.add(cat[parsed_args.cat])
 
     per_cat_acc = {k: [] for k in list(all_of_category)}
-    per_cat_avg_acc ={k: [] for k in list(all_of_category)}
+    per_cat_avg_acc = {k: [] for k in list(all_of_category)}
+    per_cat_counts = {k: [] for k in list(all_of_category)}
 
 #####################################
 
@@ -140,21 +141,26 @@ plt.savefig('fig.png')
 
 if parsed_args.cat :
 
+    c = train_dataset.counts_ordered
+    counts = (c - np.min(c)) / (np.max(c) - np.min(c)) * (90 - 50) + 50
+
     for rank, acc in enumerate(accs_avg_prec3_acc) :
         cat_id = train_dataset.ord_lookup_inv[rank] 
         category = ann_data['categories'][cat_id][parsed_args.cat]
         per_cat_avg_acc[category].append(acc)
+        per_cat_counts[category].append(counts[rank])
 
     if not osp.isdir(parsed_args.cat) : os.mkdir(parsed_args.cat)
 
     for category in list(all_of_category) :
 
         num_species = len(per_cat_avg_acc[category])
+        len_counts = len(per_cat_counts[category])
 
         s, k = 1, 1
         plt.figure()
         plt.plot(k * np.arange(num_species),gaussian_filter1d(per_cat_avg_acc[category], max(1, num_species//25)), 'r')
-        #plt.bar(range(len(counts)), counts, width=1, alpha=0.5, align='edge')
+        plt.bar(range(len_counts), per_cat_counts[category], width=1, alpha=0.5, align='edge')
         plt.ylim([0, 100])
         plt.xlabel('Species')
         plt.ylabel('accuracy %')
