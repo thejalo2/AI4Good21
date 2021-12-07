@@ -14,6 +14,7 @@ import os
 import os.path as osp
 import time
 import numpy as np
+from math import ceil
 
 from utils import Params, AverageMeter, accuracy, save_checkpoint, train_epoch, validate, LDAMLoss, get_chunk_idx
 import data
@@ -140,6 +141,16 @@ for epoch in range(args.start_epoch, args.epochs):
         print('exit_thresh: {}'.format(exit_thresh))
         print(len(current_train_loaders_idx_passed))
         print(torch.sum(down_weight_factors))
+    elif args.exit_strategy == 'downweight_min':
+        exit_thresh = min(ceil(np.min(np.array(prec3_per_chunk)) / args.nearest) * args.nearest, args.max_thresh)
+        passed_mask = np.array(prec3_per_chunk) > exit_thresh
+        current_train_loaders_idx_passed = list(np.where(passed_mask)[0])
+        down_weight_factors = torch.ones_like(train_dataset_full.class_weights)
+        for i in current_train_loaders_idx_passed:
+            down_weight_factors[train_dataset_full.chunks_classes[i]] = args.dw_factor
+        print('exit_thresh: {}'.format(exit_thresh))
+        print(len(current_train_loaders_idx_passed))
+        print(torch.sum(down_weight_factors))
     elif args.exit_strategy == 'dropout':
         current_train_loaders_idx = list(np.where(np.array(prec3_per_chunk) < exit_thresh)[0])
         current_train_datasets = []
@@ -161,8 +172,12 @@ for epoch in range(args.start_epoch, args.epochs):
         'optimizer': optimizer.state_dict(),
     }, is_best, args.save_path)
 
-# x = np.arange(0,25)
-# y = 1 - (x / 25) ** 2
-# plt.plot(x,y)
-# plt.xlabel('epoch')
-# plt.ylabel(r'$\alpha$')
+
+# import matplotlib.pyplot as plt
+# x = np.arange(0, 50)
+# y = 1 - (x / 50) ** 2
+# plt.plot(x, y, color='steelblue', linewidth=5.0)
+# plt.xlabel('epoch', size=30)
+# plt.ylabel(r'$\alpha$', size=30, rotation=0, labelpad=20)
+# plt.xticks(size=15)
+# plt.yticks(size=15)

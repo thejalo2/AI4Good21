@@ -14,6 +14,7 @@ class Params:
     # resume = 'exit.pth.tar'
     resume = ''
     # resume = 'checkpoints/exit_dw_1/exit_best_2.pth.tar'
+    # resume = 'checkpoints/exit_dynamic_10_5_best.pth.tar'
 
     # paths
     if os.name == 'nt':
@@ -23,7 +24,7 @@ class Params:
     train_file = data_root + 'train2018.json'
     val_file = data_root + 'val2018.json'
     cat_file = data_root + 'categories.json'
-    save_path = 'exit_dynamic_50_10_both.pth.tar'
+    save_path = 'exit_dynamic_815_10_min.pth.tar'
 
     # hyper-parameters
     num_classes = 8142
@@ -45,16 +46,21 @@ class Params:
     beta = None
 
     # rank performance based down-weighting
-    exit_strategy = 'downweight_dynamic'  # downweight_fixed / downweight_dynamic / dropout
+    exit_strategy = 'downweight_min'  # downweight_fixed / downweight_dynamic / downweight_min / dropout
     dw_factor = 0.1
     chunk_size = 815
-    weight_both_branches = True
+    # chunk_size = 221
+    weight_both_branches = False
     if exit_strategy == 'downweight_fixed':
         exit_thresh = 80
     elif exit_strategy == 'downweight_dynamic':
         exit_thresh = 50
-        thresh_increase = 10
+        thresh_increase = 5
         max_thresh = 90
+    elif exit_strategy == 'downweight_min':
+        exit_thresh = 0
+        max_thresh = 90
+        nearest = 10
 
     # system variables
     print_freq = 100
