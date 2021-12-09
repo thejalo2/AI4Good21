@@ -14,7 +14,7 @@ class Params:
     # resume = 'exit.pth.tar'
     resume = ''
     # resume = 'checkpoints/exit_dw_1/exit_best_2.pth.tar'
-    # resume = 'checkpoints/exit_dynamic_10_5_best.pth.tar'
+    # resume = 'checkpoints/exit_dynamic_10_5/exit_dynamic_10_5_best.pth.tar'
 
     # paths
     if os.name == 'nt':
@@ -23,13 +23,15 @@ class Params:
         data_root = '/cluster/scratch/ljanik/inat_data/'
     train_file = data_root + 'train2018.json'
     val_file = data_root + 'val2018.json'
+    test_file = data_root + 'test2018.json'
     cat_file = data_root + 'categories.json'
-    save_path = 'exit_dynamic_815_10_min.pth.tar'
+    save_path = 'exit_dynamic_10_5.pth.tar'
+    op_file_name = 'inat2018_test_preds.csv'  # submission file
 
     # hyper-parameters
     num_classes = 8142
     if os.name == 'nt':
-        batch_size = 8
+        batch_size = 16
     else:
         batch_size = 16
     lr = 1e-5
@@ -46,7 +48,7 @@ class Params:
     beta = None
 
     # rank performance based down-weighting
-    exit_strategy = 'downweight_min'  # downweight_fixed / downweight_dynamic / downweight_min / dropout
+    exit_strategy = 'downweight_dynamic'  # downweight_fixed / downweight_dynamic / downweight_min / dropout
     dw_factor = 0.1
     chunk_size = 815
     # chunk_size = 221
@@ -54,7 +56,7 @@ class Params:
     if exit_strategy == 'downweight_fixed':
         exit_thresh = 80
     elif exit_strategy == 'downweight_dynamic':
-        exit_thresh = 50
+        exit_thresh = 10
         thresh_increase = 5
         max_thresh = 90
     elif exit_strategy == 'downweight_min':
