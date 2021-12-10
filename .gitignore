@@ -141,3 +141,9 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# other
+checkpoints
+drop_analysis
+*.pth.tar
+*.png
