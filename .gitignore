@@ -147,3 +147,4 @@ checkpoints
 drop_analysis
 *.pth.tar
 *.png
+*.csv
