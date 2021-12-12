@@ -62,13 +62,7 @@ class INAT(data.Dataset):
             for c in cats:
                 classes[c].append(e[c])
         self.ann_data = ann_data
-        # print((classes['name']))
         # print((classes['name'][2844]))
-        # print((classes['name'][3119]))
-        # for c in cats:
-        #     print(c)
-        #     print(set(classes[c]))
-        #     print()
 
         # data distribution exploration
         # print(ann_data['categories'][ann_data['annotations'][0]['category_id']])
@@ -83,19 +77,6 @@ class INAT(data.Dataset):
             self.ord_lookup_inv = {v: k for k, v in self.ord_lookup.items()}  # rank -> class index
             self.counts_lookup = counts
             self.counts_ordered = counts[ord]
-        # plt.bar(range(len(ann_data['categories'])), counts, width=1)#, log=True)
-        # plt.xlabel('Species')
-        # plt.ylabel('Number of images')
-
-        # c = 'supercategory'
-        # counts = {c: 0 for c in classes[c]}
-        # for e in ann_data['annotations']:
-        #     counts[ann_data['categories'][int(e['category_id'])][c]] += 1
-        # counts = sorted([counts[c] for c in counts.keys()], reverse=True)
-        # print(max(counts))
-        # plt.bar(range(len(counts)), counts, width=1)#, log=True)
-        # plt.xlabel('Superclass')
-        # plt.ylabel('Number of images')
 
         # pre computations for weighted sampling
         if 'annotations' in ann_data.keys():

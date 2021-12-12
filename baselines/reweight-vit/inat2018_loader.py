@@ -95,12 +95,12 @@ class INAT(data.Dataset):
         # plt.ylabel('Number of images')
 
         # pre computations for weighted sampling
-        max_count = np.max(self.counts_lookup)
-        count_normalizer = np.sum(max_count / self.counts_lookup)
-        self.class_probas = np.zeros_like(self.counts_lookup, dtype=float)
-        for class_index, class_count in enumerate(self.counts_lookup):
-            self.class_probas[class_index] = (max_count / class_count) / count_normalizer
-
+        if 'annotations' in ann_data.keys():
+            max_count = np.max(self.counts_lookup)
+            count_normalizer = np.sum(max_count / self.counts_lookup)
+            self.class_probas = np.zeros_like(self.counts_lookup, dtype=float)
+            for class_index, class_count in enumerate(self.counts_lookup):
+                self.class_probas[class_index] = (max_count / class_count) / count_normalizer
 
         # set up the filenames and annotations
         self.imgs = [aa['file_name'] for aa in ann_data['images']]
@@ -127,13 +127,13 @@ class INAT(data.Dataset):
         self.root = root
         self.is_train = is_train
         self.loader = default_loader
-        self.num_classes = self.counts_lookup.shape[0]
+        if 'annotations' in ann_data.keys():
+            self.num_classes = self.counts_lookup.shape[0]
 
-        # pre computations for re-weighted loss
-        self.class_weights = 1. / self.counts_lookup
-        # compensate total weight-down (TODO: make smarter)
-        self.class_weights *= self.num_classes / np.sum(self.class_weights)
-        self.class_weights = torch.FloatTensor(self.class_weights).cuda()
+            # pre computations for re-weighted loss
+            self.class_weights = 1. / self.counts_lookup
+            self.class_weights *= self.num_classes / np.sum(self.class_weights)
+            self.class_weights = torch.FloatTensor(self.class_weights).cuda()
 
         # augmentation params
         self.im_size = config['input_size'][1:]
