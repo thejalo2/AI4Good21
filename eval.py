@@ -27,7 +27,6 @@ import json
 args = Params()
 cudnn.benchmark = True
 
-
 # model
 model = SharedEmbedderModel(num_classes=8142, hidden_size=768, share_embedder=args.share_embedder).cuda()
 model.inference_alpha = args.inference_alpha
@@ -58,7 +57,7 @@ print('Overall Top 3 Accuracy')
 print(str(round(overall_prec3.item(), 2)) + r'\%')
 
 # validate per class
-train_dataset = data.INAT(args.data_root, args.train_file, args.cat_file, config, is_train=True)
+train_dataset = data.INAT(args.data_root, args.train_file, args.cat_file, config, args.beta, is_train=True)
 val_loader_sep = torch.utils.data.DataLoader(val_dataset, batch_size=1, shuffle=False,
                                              num_workers=args.workers, pin_memory=True)
 accs = [{'prec1': 0, 'prec3': 0, 'count': 0} for _ in range(len(train_dataset.ord_lookup))]
@@ -67,7 +66,7 @@ for i, (im, im_id, target, tax_ids) in enumerate(val_loader_sep):
         im = im.cuda()
         target = target.cuda(non_blocking=True)
         input_var = torch.autograd.Variable(im)
-        output = model(input_var)
+        output = model(input_var, None)
         prec1, prec3 = accuracy(output.data, target, topk=(1, 3))
         idx = train_dataset.ord_lookup[target[0].item()]
         accs[idx]['prec1'] += prec1.item()
@@ -83,8 +82,8 @@ accs_avg_prec3 = [e['prec3'] / e['count'] for e in accs]
 s = 1
 k = 1
 plt.figure(figsize=(8, 6), dpi=300)
-accs_avg_prec3_acc = [sum(accs_avg_prec3[i:i + s]) / s for i in range(0, len(accs_avg_prec3) - (s-1), k)]
-plt.plot(k*np.arange(len(accs_avg_prec3_acc)), gaussian_filter1d(accs_avg_prec3_acc, 300), 'r', label='ours (exit)')
+accs_avg_prec3_acc = [sum(accs_avg_prec3[i:i + s]) / s for i in range(0, len(accs_avg_prec3) - (s - 1), k)]
+plt.plot(k * np.arange(len(accs_avg_prec3_acc)), gaussian_filter1d(accs_avg_prec3_acc, 300), 'r', label='ours (exit)')
 c = train_dataset.counts
 counts = (c - np.min(c)) / (np.max(c) - np.min(c)) * (90 - 50) + 50
 plt.bar(range(len(counts)), counts, width=1, alpha=0.5, align='edge')
@@ -97,7 +96,7 @@ plt.savefig('balance_plot.png')
 
 # decile accuracy
 decile_accs_prec3 = []
-decile_slices = [(e[0], e[-1]+1) for e in np.array_split(np.arange(8142), 10)]
+decile_slices = [(e[0], e[-1] + 1) for e in np.array_split(np.arange(8142), 10)]
 for ds in decile_slices:
     decile_accs_prec3.append(round(np.mean(np.array(accs_avg_prec3[ds[0]:ds[1]])), 2))
 latex_str = ''.join(['ours (exit)'] + [' & ' + str(e) + r'\%' for e in decile_accs_prec3])
