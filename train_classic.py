@@ -14,7 +14,8 @@ import os.path as osp
 import time
 import numpy as np
 
-from utils import Params, AverageMeter, accuracy, save_checkpoint, train_epoch, validate, LDAMLoss
+from utils import AverageMeter, accuracy, save_checkpoint, train_epoch, validate, LDAMLoss
+from params import Params
 import data
 from models import SharedEmbedderModel
 
@@ -43,7 +44,8 @@ val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size
 # loss & optimizer
 criterion = nn.CrossEntropyLoss().cuda()
 if args.use_ldam:
-    criterion_reweighted = LDAMLoss(train_dataset.counts_lookup, max_m=0.5, weight=train_dataset.class_weights, s=30).cuda()
+    criterion_reweighted = LDAMLoss(train_dataset.counts_lookup, max_m=0.5, weight=train_dataset.class_weights,
+                                    s=30).cuda()
 else:
     criterion_reweighted = nn.CrossEntropyLoss(weight=train_dataset.class_weights).cuda()
 optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
@@ -91,9 +93,3 @@ for epoch in range(args.start_epoch, args.epochs):
         'alpha': model.alpha,
         'optimizer': optimizer.state_dict(),
     }, is_best, args.save_path)
-
-# x = np.arange(0,25)
-# y = 1 - (x / 25) ** 2
-# plt.plot(x,y)
-# plt.xlabel('epoch')
-# plt.ylabel(r'$\alpha$')

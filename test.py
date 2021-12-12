@@ -16,7 +16,8 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
-from utils import Params, AverageMeter, accuracy, save_checkpoint, train_epoch, validate
+from utils import AverageMeter, accuracy, save_checkpoint, train_epoch, validate
+from params import Params
 import data
 from models import SharedEmbedderModel
 import pickle

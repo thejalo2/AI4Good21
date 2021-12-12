@@ -16,7 +16,8 @@ import time
 import numpy as np
 from math import ceil
 
-from utils import Params, AverageMeter, accuracy, save_checkpoint, train_epoch, validate, LDAMLoss, get_chunk_idx
+from utils import AverageMeter, accuracy, save_checkpoint, train_epoch, validate, LDAMLoss, get_chunk_idx
+from params import Params
 import data
 from models import SharedEmbedderModel
 
@@ -46,10 +47,7 @@ train_datasets = []
 chunks_img_train = get_chunk_idx(train_dataset_full.chunks_classes, train_dataset_full.classes_inv)
 for i in range(train_dataset_full.num_chunks):
     train_dataset_i = Subset(train_dataset_full, chunks_img_train[i])
-    # train_loader_i = torch.utils.data.DataLoader(train_dataset_i, batch_size=args.batch_size, shuffle=True,
-    #                                              num_workers=args.workers, pin_memory=True)
     train_datasets.append(train_dataset_i)
-    # train_loaders.append(train_loader_i)
 
 # chunked validation set (same chunking as for training set!)
 val_datasets = []
@@ -171,13 +169,3 @@ for epoch in range(args.start_epoch, args.epochs):
         'alpha': model.alpha,
         'optimizer': optimizer.state_dict(),
     }, is_best, args.save_path)
-
-
-# import matplotlib.pyplot as plt
-# x = np.arange(0, 50)
-# y = 1 - (x / 50) ** 2
-# plt.plot(x, y, color='steelblue', linewidth=5.0)
-# plt.xlabel('epoch', size=30)
-# plt.ylabel(r'$\alpha$', size=30, rotation=0, labelpad=20)
-# plt.xticks(size=15)
-# plt.yticks(size=15)

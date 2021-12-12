@@ -65,7 +65,6 @@ class INAT(data.Dataset):
         # print((classes['name'][2844]))
 
         # data distribution exploration
-        # print(ann_data['categories'][ann_data['annotations'][0]['category_id']])
         if 'annotations' in ann_data.keys():
             counts = [0 for _ in range(len(ann_data['categories']))]
             for e in ann_data['annotations']:

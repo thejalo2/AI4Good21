@@ -96,5 +96,3 @@ for ds in decile_slices:
 latex_str = ''.join(['ViT'] + [' & ' + str(e) + r'\%' for e in decile_accs_prec3])
 print('Decile Evaluation')
 print(latex_str)
-
-
