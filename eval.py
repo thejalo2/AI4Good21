@@ -27,10 +27,6 @@ import json
 args = Params()
 cudnn.benchmark = True
 
-# For the per-category accuracy 
-parser = argparse.ArgumentParser()
-parser.add_argument("-cat", type=str)
-parsed_args = parser.parse_args()
 
 # model
 model = SharedEmbedderModel(num_classes=8142, hidden_size=768, share_embedder=args.share_embedder).cuda()

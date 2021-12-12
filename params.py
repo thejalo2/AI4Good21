@@ -3,7 +3,7 @@ import os
 
 class Params:
     # set to model path to continue training
-    resume = 'exit_dynamic_10_5'
+    resume = 'exit_dynamic_10_5_best.pth.tar'
 
     # paths
     if os.name == 'nt':
