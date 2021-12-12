@@ -83,8 +83,8 @@ s = 1
 k = 1
 plt.figure(figsize=(8, 6), dpi=300)
 accs_avg_prec3_acc = [sum(accs_avg_prec3[i:i + s]) / s for i in range(0, len(accs_avg_prec3) - (s - 1), k)]
-plt.plot(k * np.arange(len(accs_avg_prec3_acc)), gaussian_filter1d(accs_avg_prec3_acc, 300), 'r', label='ours (exit)')
-c = train_dataset.counts
+plt.plot(k * np.arange(len(accs_avg_prec3_acc)), gaussian_filter1d(accs_avg_prec3_acc, 300), 'c', label='ours (exit)')
+c = train_dataset.counts_ordered
 counts = (c - np.min(c)) / (np.max(c) - np.min(c)) * (90 - 50) + 50
 plt.bar(range(len(counts)), counts, width=1, alpha=0.5, align='edge')
 plt.ylim([50, 90])
