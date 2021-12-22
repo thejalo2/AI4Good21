@@ -6,7 +6,7 @@
 Code adapted from [here](https://github.com/macaodha/inat_comp_2018).
 
 ## Trained models
-Download trained models [from polybox](https://polybox.ethz.ch/index.php/s/CsgHnIu8QBKqMDr)
+Trained models can be downloaded [from polybox](https://polybox.ethz.ch/index.php/s/CsgHnIu8QBKqMDr)
 
 ## Installation
 ```
