@@ -30,3 +30,5 @@ Place both files into the root directory of this repo. Then run:
 - `test.py` to produce the kaggle submission file  
 
 Similarly, we also provide reproducability for all baselines. You can follow the same instrutions, simply using `baselines/[cnn|reweight-vit|vit]` as the root directoy and simply use `train.py` instead for training.
+
+Note: We used Euler to train our models. As submission prefix we used `bsub -n 4 -W 96:00 -R "rusage[ngpus_excl_p=1,mem=8000]"`.
