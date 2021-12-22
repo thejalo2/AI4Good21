@@ -2,7 +2,7 @@
 # EarlyExVit: 2-branch ViT with early exit weighting for long tail classification
  ![arch](img/arch.png)
 
-## Credits
+## Credit
 Code adapted from [here](https://github.com/macaodha/inat_comp_2018).
 
 ## Trained models
