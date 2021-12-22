@@ -146,5 +146,4 @@ cython_debug/
 checkpoints
 drop_analysis
 *.pth.tar
-*.png
 *.csv
