@@ -1,9 +1,12 @@
 
-# AI4Good - iNaturalist 2018 Challenge 
+# EarlyExVit: 2-branch ViT with early exit weighting for long tail classification
+ ![arch](img/arch.png)
+
+## Credits
 Code adapted from [here](https://github.com/macaodha/inat_comp_2018).
 
 ## Trained models
-Download trained baseline models [from polybox](https://polybox.ethz.ch/index.php/s/10yX4iEPP9caOog)
+Download trained models [from polybox](https://polybox.ethz.ch/index.php/s/CsgHnIu8QBKqMDr)
 
 ## Installation
 ```
@@ -15,5 +18,15 @@ pip install matplotlib
 ```
 
 ## Reproduce Experiments
-TODO
-download models and parameters [here](https://polybox.ethz.ch/index.php/s/CsgHnIu8QBKqMDr)
+To reproduce a specific experiment you need 2 files:
+- `params.py`: a file containing all hyper parameters
+- `*.pth.tar`: the trained model (of course not needed when re-training from scratch)
+These files can be found [on polybox](https://polybox.ethz.ch/index.php/s/CsgHnIu8QBKqMDr). 1 folder contains 1 experiment, following the same naming as in the report.
+Place both files into the root directory of this repo. Then run:
+- `eval.py` to produce overall accuracy, long-tail plot, and decile evaluation
+- `train_classic.py` to train a model without the early exit weighting scheme (ours (classic))
+- `train_exit.py` to train a model with the early exit weighting scheme (ours (exit))
+- `test.py` to produce the kaggle submission file
+
+
+Similarly, we also provide reproducability for all baselines. You can follow the same instrutions, simply using `baselines/[cnn|reweight-vit|vit]` as the root directoy and simply use `train.py` instead for training.
